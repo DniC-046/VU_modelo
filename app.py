@@ -61,7 +61,7 @@ def analizar_datos():
         "alumnos": datos
     })
 
-app_dash = Dash(__name__, server=server, url_base_pathname='/')
+app = Dash(__name__, server=server, url_base_pathname='/')
 
 datos_alumnos = obtener_datos_procesados()
 df_dashboard = pd.DataFrame(datos_alumnos)
@@ -88,7 +88,7 @@ else:
     fig_pastel = px.scatter(title="Sin datos disponibles")
     fig_barras = px.scatter(title="Sin datos disponibles")
 
-app_dash.layout = html.Div(style={'fontFamily': 'Arial, sans-serif', 'padding': '20px', 'backgroundColor': '#f8f9fa'}, children=[
+app.layout = html.Div(style={'fontFamily': 'Arial, sans-serif', 'padding': '20px', 'backgroundColor': '#f8f9fa'}, children=[
     
     html.Div(style={'textAlign': 'center', 'marginBottom': '30px', 'padding': '10px', 'backgroundColor': '#003366', 'color': 'white', 'borderRadius': '5px'}, children=[
         html.H1("Dashboard de Analítica de Datos - Virtual UTTEC"),
