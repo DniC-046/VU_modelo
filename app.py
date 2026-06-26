@@ -61,7 +61,7 @@ def analizar_datos():
         "alumnos": datos
     })
 
-app = Dash(__name__, server=server, url_base_pathname='/')
+app = Dash(__name__, server=server, url_base_pathname='/dashboard')
 
 datos_alumnos = obtener_datos_procesados()
 df_dashboard = pd.DataFrame(datos_alumnos)
