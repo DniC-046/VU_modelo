@@ -17,7 +17,7 @@ def obtener_datos_procesados():
     resultados = []
     for index, fila in df.iterrows():
         alumno_nombre = str(fila.get(df.columns[0], f"Alumno_{index}"))
-        nota_final = fila.get('Total del curso', 0)
+nota_final = fila.get('Total del curso', fila.get('Calificación final', fila.get('Course total', 0)))
         try:
             nota_final = float(nota_final)
         except:
