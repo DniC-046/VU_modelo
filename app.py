@@ -8,9 +8,12 @@ import plotly.express as px
 server = Flask(__name__)
 
 def obtener_datos_procesados():
-    ruta_archivo = 'datos.ods'
+    ruta_archivo = 'Calificaciones de Virtual.ods'  
     if not os.path.exists(ruta_archivo):
-        return pd.DataFrame()
+        if os.path.exists('calificaciones de virtual.ods'):
+            ruta_archivo = 'calificaciones de virtual.ods'
+        else:
+            return pd.DataFrame()
     
     df = pd.read_excel(ruta_archivo, engine='odf')
     
@@ -21,16 +24,21 @@ def obtener_datos_procesados():
     else:
         df['alumno'] = df[df.columns[0]].astype(str).str.strip().str.upper()
     
-    if 'Total del curso' in df.columns:
-        df['nota_final'] = df['Total del curso']
-    elif 'Calificación final' in df.columns:
-        df['nota_final'] = df['Calificación final']
-    elif 'Course total' in df.columns:
-        df['nota_final'] = df['Course total']
+    columnas_examenes = [
+        'Examen:Quizz Desarrollo Software (Real)',
+        'Examen:Quizz - Redes (Real)',
+        'Examen:Quizz - Modelo Educativo (Real)',
+        'Examen:Quizz - Educación Ambiental (Real)'
+    ]
+    
+    for col in columnas_examenes:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+            
+    if 'Total del curso (Real)' in df.columns:
+        df['nota_final'] = pd.to_numeric(df['Total del curso (Real)'], errors='coerce').fillna(0.0)
     else:
         df['nota_final'] = 0.0
-
-    df['nota_final'] = pd.to_numeric(df['nota_final'], errors='coerce').fillna(0.0)
     
     columnas_grupo = [c for c in df.columns if 'grupo' in c.lower()]
     if columnas_grupo:
@@ -44,19 +52,19 @@ app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exc
 application = app.server
 
 app.layout = html.Div([
-    dcc.Location(id='url', refresh=False), 
-    html.Div(id='page-content')           
+    dcc.Location(id='url', refresh=False),
+    html.Div(id='page-content')
 ])
 
 def render_pagina_general():
     df = obtener_datos_procesados()
     if df.empty:
-        return html.Div("Error: No se encontró el archivo datos.ods en el servidor.")
+        return html.Div("Error: No se encontró el archivo 'Calificaciones de Virtual.ods' en el servidor.")
         
     lista_grupos = sorted(df['grupo'].unique())
     
     return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
-        html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.1)'}, children=[
+        html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px'}, children=[
             html.H1("Analítica del curso", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
             html.P("Visualiza el desempeño global y selecciona estudiantes para su seguimiento", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
         ]),
@@ -94,7 +102,7 @@ def render_pagina_individual(nombre_alumno):
         
     registro = df[df['alumno'] == nombre_alumno]
     if registro.empty:
-        return html.Div("Estudiante no encontrado en la base de datos.")
+        return html.Div("Estudiante no encontrado.")
         
     datos = registro.iloc[0]
     nota = datos['nota_final']
@@ -110,14 +118,21 @@ def render_pagina_individual(nombre_alumno):
         estatus = "Alerta: Riesgo de Reprobación"
         color_alert = "#e74c3c"
         
-    fig_pastel = px.pie(
-        names=['Calificación Obtenida', 'Puntos Restantes'],
-        values=[nota, max(10.0 - nota, 0)],
-        color_discrete_sequence=[color_alert, '#e2e8f0'],
-        hole=0.6,
-        title="Distribución de Calificaciones por Tipo"
+    quizzes = {
+        'Desarrollo Software': datos.get('Examen:Quizz Desarrollo Software (Real)', 0.0),
+        'Redes': datos.get('Examen:Quizz - Redes (Real)', 0.0),
+        'Modelo Educativo': datos.get('Examen:Quizz - Modelo Educativo (Real)', 0.0),
+        'Educación Ambiental': datos.get('Examen:Quizz - Educación Ambiental (Real)', 0.0)
+    }
+    
+    fig_pastel_individual = px.pie(
+        names=list(quizzes.keys()),
+        values=list(quizzes.values()),
+        title="Resumen de calificaciones por tipo (Quizzes)",
+        hole=0.4,
+        color_discrete_sequence=px.colors.qualitative.Safe
     )
-    fig_pastel.update_layout(showlegend=False, margin=dict(t=40, b=10, l=10, r=10))
+    fig_pastel_individual.update_layout(margin=dict(t=50, b=10, l=10, r=10))
 
     return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
         dcc.Link("← Volver a la vista general", href="/", style={'textDecoration': 'none', 'color': '#003366', 'fontWeight': 'bold', 'display': 'inline-block', 'marginBottom': '20px'}),
@@ -130,7 +145,7 @@ def render_pagina_individual(nombre_alumno):
                 
                 html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr', 'gap': '20px', 'marginBottom': '25px'}, children=[
                     html.Div(style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '6px', 'borderLeft': f'5px solid {color_alert}'}, children=[
-                        html.Small("PROMEDIO GENERAL", style={'color': '#7f8c8d', 'fontWeight': 'bold'}),
+                        html.Small("PROMEDIO FINAL DEL CURSO", style={'color': '#7f8c8d', 'fontWeight': 'bold'}),
                         html.H3(f"{nota} pts", style={'margin': '5px 0 0 0', 'color': '#2c3e50'})
                     ]),
                     html.Div(style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '6px'}, children=[
@@ -141,17 +156,16 @@ def render_pagina_individual(nombre_alumno):
                 
                 html.H4("Recomendación del Modelo Analítico:", style={'color': '#003366', 'marginBottom': '8px'}),
                 html.P(
-                    "Urgente revisar a alumno en posibilidades de baja." if nota < 6.0 else "Estudiante con avance regular." if nota < 8.5 else "Excelente rendimiento.",
+                    "Urgente revisión del alumno." if nota < 6.0 else "Estudiante regular.",
                     style={'color': '#555', 'lineHeight': '1.5', 'fontSize': '15px'}
                 )
             ]),
             
             html.Div(style={'borderLeft': '1px solid #eee', 'paddingLeft': '20px'}, children=[
-                dcc.Graph(figure=fig_pastel, config={'displayModeBar': False})
+                dcc.Graph(figure=fig_pastel_individual, config={'displayModeBar': False})
             ])
         ])
     ])
-
 
 @app.callback(
     Output('page-content', 'children'),
@@ -180,24 +194,23 @@ def actualizar_panel_general(grupo_seleccionado):
     if grupo_seleccionado != 'TODOS':
         df = df[df['grupo'] == grupo_seleccionado]
         
-    
-    df['rango'] = pd.cut(df['nota_final'], bins=[-1, 5.9, 7.9, 8.9, 10], labels=['Menor a 6', '7 - 7.9', '8 - 8.9', '9 - 10'])
+    df['rango'] = pd.cut(df['nota_final'], bins=[-1, 5.9, 7.9, 8.9, 10], labels=['Menor a 6 (Reprobado)', '7 - 7.9 (Regular)', '8 - 8.9 (Bueno)', '9 - 10 (Excelente)'])
     conteos = df['rango'].value_counts().reset_index()
     conteos.columns = ['Estatus', 'Cantidad']
     
-    fig_pastel = px.pie(conteos, names='Estatus', values='Cantidad', title='Distribución de Calificaciones', hole=0.4)
+    fig_pastel = px.pie(conteos, names='Estatus', values='Cantidad', title='Distribución General de Calificaciones', hole=0.4,
+                        color_discrete_sequence=['#e74c3c', '#f39c12', '#3498db', '#2ecc71'])
     
-    
-    fig_barras = px.bar(df, x='alumno', y='nota_final', color='nota_final', title='Calificaciones del Curso',
-                        labels={'nota_final': 'Calificación', 'alumno': 'Estudiante'})
-    fig_barras.update_layout(xaxis_tickangle=-45)
-    
+    fig_barras = px.bar(df, x='alumno', y='nota_final', color='nota_final', title='Rendimiento de Calificaciones por Estudiante',
+                        labels={'nota_final': 'Puntuación', 'alumno': 'Estudiante'},
+                        color_continuous_scale=px.colors.sequential.Viridis)
+    fig_barras.update_layout(xaxis_tickangle=-45, margin=dict(b=120))
     
     elementos_lista = []
     for _, fila in df.iterrows():
         nombre_completo = fila['alumno']
         elementos_lista.append(
-            html.Div(style={'padding': '12px 15px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'justifyContent': 'between', 'alignItems': 'center'}, children=[
+            html.Div(style={'padding': '12px 15px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'}, children=[
                 dcc.Link(nombre_completo, href=f"/alumno/{urllib.parse.quote(nombre_completo)}", 
                          style={'textDecoration': 'none', 'color': '#0056b3', 'fontWeight': '500', 'fontSize': '15px'}),
                 html.Span(f"{fila['nota_final']} pts", style={'backgroundColor': '#e9ecef', 'padding': '4px 10px', 'borderRadius': '12px', 'fontSize': '13px', 'fontWeight': 'bold'})
