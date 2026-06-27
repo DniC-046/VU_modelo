@@ -8,10 +8,10 @@ import plotly.express as px
 server = Flask(__name__)
 
 def obtener_datos_procesados():
-    ruta_archivo = 'Calificaciones de Virtual.ods'  
+    ruta_archivo = 'datos.ods'  
     if not os.path.exists(ruta_archivo):
-        if os.path.exists('calificaciones de virtual.ods'):
-            ruta_archivo = 'calificaciones de virtual.ods'
+        if os.path.exists('datos.ods'):
+            ruta_archivo = 'datos.ods'
         else:
             return pd.DataFrame()
     
