@@ -4,5 +4,5 @@ odfpy==1.4.1
 gunicorn==22.0.0
 dash==2.17.0
 plotly==5.22.0
-openai==1.35.3
+openai>=1.0.0
 python-dotenv==1.0.1
