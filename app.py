@@ -5,18 +5,29 @@ import urllib.parse
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
 
+# NUEVO: Importamos las librerías de OpenAI y control de entorno
+from openai import OpenAI
+from dotenv import load_dotenv
+
+# Cargamos el archivo .env local (en Render se cargará el Env Group automáticamente)
+load_dotenv()
+
+# Conexión Segura a la API Key de OpenAI mediante variables de entorno
+# Nota: "OPENAI_API_KEY" debe ser el nombre exacto que pusiste en tu grupo de Render
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+# 1. Configuración del Servidor Flask base
 server = Flask(__name__)
 
 def obtener_datos_procesados():
-    ruta_archivo = 'datos.ods'  
+    ruta_archivo = 'Calificaciones de Virtual.ods'
     if not os.path.exists(ruta_archivo):
-        if os.path.exists('datos.ods'):
-            ruta_archivo = 'datos.ods'
+        if os.path.exists('calificaciones de virtual.ods'):
+            ruta_archivo = 'calificaciones de virtual.ods'
         else:
             return pd.DataFrame()
     
     df = pd.read_excel(ruta_archivo, engine='odf')
-    
     df.columns = [str(c).strip() for c in df.columns]
     
     if 'nombre' in df.columns and 'apellido' in df.columns:
@@ -48,6 +59,7 @@ def obtener_datos_procesados():
         
     return df
 
+# 2. Inicialización de Dash multipágina
 app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exceptions=True)
 application = app.server
 
@@ -56,6 +68,9 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
+# ----------------------------------------------------------------------------
+# VISTA 1: ANALÍTICA GENERAL DEL CURSO
+# ----------------------------------------------------------------------------
 def render_pagina_general():
     df = obtener_datos_procesados()
     if df.empty:
@@ -65,8 +80,8 @@ def render_pagina_general():
     
     return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
         html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px'}, children=[
-            html.H1("Analítica del curso", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
-            html.P("Visualiza el desempeño global y selecciona estudiantes para su seguimiento", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
+            html.H1("Analítica del curso - Virtual UTTEC", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
+            html.P("Monitoreo inteligente asistido por IA de OpenAI para el Propedéutico DTIC", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
         ]),
         
         html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '25px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
@@ -95,6 +110,9 @@ def render_pagina_general():
         ])
     ])
 
+# ----------------------------------------------------------------------------
+# VISTA 2: FICHA DE ANÁLISIS INDIVIDUAL CON CONSULTA EN TIEMPO REAL A OPENAI
+# ----------------------------------------------------------------------------
 def render_pagina_individual(nombre_alumno):
     df = obtener_datos_procesados()
     if df.empty:
@@ -125,10 +143,27 @@ def render_pagina_individual(nombre_alumno):
         'Educación Ambiental': datos.get('Examen:Quizz - Educación Ambiental (Real)', 0.0)
     }
     
+    # --- CONEXIÓN E INTEGRACIÓN CON LA API DE OPENAI ---
+    try:
+        # Le pedimos a GPT que actúe como un tutor analítico de la UTTEC
+        response = client.chat.completions.create(
+            model="gpt-4o-mini", # Usamos el modelo rápido y optimizado para producción
+            messages=[
+                {"role": "system", "content": "Eres un tutor académico experto de la Universidad Tecnológica de Tecámac (UTTEC). Tu labor es dar una recomendación pedagógica breve y directa (máximo 3 renglones) según las calificaciones obtenidas por el alumno en sus quizzes del curso propedéutico de la Dirección de TIC."},
+                {"role": "user", "content": f"Por favor analiza al estudiante con Promedio Final: {nota}. Sus calificaciones individuales en Quizzes son: Desarrollo Software: {quizzes['Desarrollo Software']}, Redes: {quizzes['Redes']}, Modelo Educativo: {quizzes['Modelo Educativo']}, Educación Ambiental: {quizzes['Educación Ambiental']}. Genera una acción o estrategia de mejora específica."}
+            ],
+            max_tokens=150,
+            temperature=0.7
+        )
+        recomendacion_ia = response.choices[0].message.content.strip()
+    except Exception as e:
+        # Respaldo seguro por si la API llegara a fallar por falta de saldo o conexión
+        recomendacion_ia = f"Sugerencia estándar: Monitorear entregas en plataforma. (Nota técnica: No se pudo conectar con OpenAI: {str(e)})"
+    
     fig_pastel_individual = px.pie(
         names=list(quizzes.keys()),
         values=list(quizzes.values()),
-        title="Resumen de calificaciones por tipo (Quizzes)",
+        title="Desglose del Rendimiento en Quizzes (Puntos Obtenidos)",
         hole=0.4,
         color_discrete_sequence=px.colors.qualitative.Safe
     )
@@ -154,10 +189,11 @@ def render_pagina_individual(nombre_alumno):
                     ])
                 ]),
                 
-                html.H4("Recomendación del Modelo Analítico:", style={'color': '#003366', 'marginBottom': '8px'}),
+                # Despliegue de la Recomendación de la IA de OpenAI
+                html.H4("💡 Recomendación de Tutoría Inteligente (OpenAI GPT):", style={'color': '#003366', 'marginBottom': '8px'}),
                 html.P(
-                    "Urgente revisión del alumno." if nota < 6.0 else "Estudiante regular.",
-                    style={'color': '#555', 'lineHeight': '1.5', 'fontSize': '15px'}
+                    recomendacion_ia,
+                    style={'color': '#2c3e50', 'lineHeight': '1.6', 'fontSize': '15px', 'backgroundColor': '#eef2f7', 'padding': '15px', 'borderRadius': '6px', 'fontStyle': 'italic'}
                 )
             ]),
             
@@ -167,6 +203,9 @@ def render_pagina_individual(nombre_alumno):
         ])
     ])
 
+# ----------------------------------------------------------------------------
+# REGLAS DE CALLBACKS
+# ----------------------------------------------------------------------------
 @app.callback(
     Output('page-content', 'children'),
     Input('url', 'pathname')
