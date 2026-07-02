@@ -134,7 +134,7 @@ def render_pagina_individual(nombre_alumno):
     # --- CONEXIÓN E INTEGRACIÓN CON LA API DE OPENAI ---
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini", 
+            model="gpt-3.5-turbo", 
             messages=[
                 {"role": "system", "content": "Eres un tutor académico experto de la Universidad Tecnológica de Tecámac (UTTEC). Tu labor es dar una recomendación pedagógica breve y directa (máximo 3 renglones) según las calificaciones obtenidas por el alumno en sus quizzes del curso propedéutico de la Dirección de TIC."},
                 {"role": "user", "content": f"Por favor analiza al estudiante con Promedio Final: {nota}. Sus calificaciones individuales en Quizzes son: Desarrollo Software: {quizzes['Desarrollo Software']}, Redes: {quizzes['Redes']}, Modelo Educativo: {quizzes['Modelo Educativo']}, Educación Ambiental: {quizzes['Educación Ambiental']}. Genera una acción o estrategia de mejora específica."}
