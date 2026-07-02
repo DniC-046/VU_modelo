@@ -5,18 +5,13 @@ import urllib.parse
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
 
-# NUEVO: Importamos las librerías de OpenAI y control de entorno
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Cargamos el archivo .env local (en Render se cargará el Env Group automáticamente)
 load_dotenv()
 
-# Conexión Segura a la API Key de OpenAI mediante variables de entorno
-# Nota: "OPENAI_API_KEY" debe ser el nombre exacto que pusiste en tu grupo de Render
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# 1. Configuración del Servidor Flask base
 server = Flask(__name__)
 
 def obtener_datos_procesados():
@@ -59,7 +54,6 @@ def obtener_datos_procesados():
         
     return df
 
-# 2. Inicialización de Dash multipágina
 app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exceptions=True)
 application = app.server
 
@@ -68,9 +62,6 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
-# ----------------------------------------------------------------------------
-# VISTA 1: ANALÍTICA GENERAL DEL CURSO
-# ----------------------------------------------------------------------------
 def render_pagina_general():
     df = obtener_datos_procesados()
     if df.empty:
@@ -110,9 +101,6 @@ def render_pagina_general():
         ])
     ])
 
-# ----------------------------------------------------------------------------
-# VISTA 2: FICHA DE ANÁLISIS INDIVIDUAL CON CONSULTA EN TIEMPO REAL A OPENAI
-# ----------------------------------------------------------------------------
 def render_pagina_individual(nombre_alumno):
     df = obtener_datos_procesados()
     if df.empty:
@@ -145,9 +133,8 @@ def render_pagina_individual(nombre_alumno):
     
     # --- CONEXIÓN E INTEGRACIÓN CON LA API DE OPENAI ---
     try:
-        # Le pedimos a GPT que actúe como un tutor analítico de la UTTEC
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # Usamos el modelo rápido y optimizado para producción
+            model="gpt-4o-mini", 
             messages=[
                 {"role": "system", "content": "Eres un tutor académico experto de la Universidad Tecnológica de Tecámac (UTTEC). Tu labor es dar una recomendación pedagógica breve y directa (máximo 3 renglones) según las calificaciones obtenidas por el alumno en sus quizzes del curso propedéutico de la Dirección de TIC."},
                 {"role": "user", "content": f"Por favor analiza al estudiante con Promedio Final: {nota}. Sus calificaciones individuales en Quizzes son: Desarrollo Software: {quizzes['Desarrollo Software']}, Redes: {quizzes['Redes']}, Modelo Educativo: {quizzes['Modelo Educativo']}, Educación Ambiental: {quizzes['Educación Ambiental']}. Genera una acción o estrategia de mejora específica."}
@@ -189,8 +176,7 @@ def render_pagina_individual(nombre_alumno):
                     ])
                 ]),
                 
-                # Despliegue de la Recomendación de la IA de OpenAI
-                html.H4("💡 Recomendación de Tutoría Inteligente (OpenAI GPT):", style={'color': '#003366', 'marginBottom': '8px'}),
+                html.H4(" Recomendación de Tutoría Inteligente (OpenAI GPT):", style={'color': '#003366', 'marginBottom': '8px'}),
                 html.P(
                     recomendacion_ia,
                     style={'color': '#2c3e50', 'lineHeight': '1.6', 'fontSize': '15px', 'backgroundColor': '#eef2f7', 'padding': '15px', 'borderRadius': '6px', 'fontStyle': 'italic'}
@@ -203,9 +189,6 @@ def render_pagina_individual(nombre_alumno):
         ])
     ])
 
-# ----------------------------------------------------------------------------
-# REGLAS DE CALLBACKS
-# ----------------------------------------------------------------------------
 @app.callback(
     Output('page-content', 'children'),
     Input('url', 'pathname')
