@@ -2,56 +2,96 @@ from flask import Flask
 import pandas as pd
 import os
 import urllib.parse
+import requests  
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
-
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+TOKEN_MOODLE = os.environ.get("MOODLE_TOKEN")
+URL_MOODLE = os.environ.get("MOODLE_URL")
+
+ID_CURSO_DTIC = 1  
 
 server = Flask(__name__)
 
 def obtener_datos_procesados():
-    ruta_archivo = 'Calificaciones de Virtual.ods'
-    if not os.path.exists(ruta_archivo):
-        if os.path.exists('calificaciones de virtual.ods'):
-            ruta_archivo = 'calificaciones de virtual.ods'
-        else:
-            return pd.DataFrame()
-    
-    df = pd.read_excel(ruta_archivo, engine='odf')
-    df.columns = [str(c).strip() for c in df.columns]
-    
-    if 'nombre' in df.columns and 'apellido' in df.columns:
-        df['alumno'] = (df['nombre'].astype(str) + ' ' + df['apellido'].astype(str)).str.strip().str.upper()
-    else:
-        df['alumno'] = df[df.columns[0]].astype(str).str.strip().str.upper()
-    
-    columnas_examenes = [
-        'Examen:Quizz Desarrollo Software (Real)',
-        'Examen:Quizz - Redes (Real)',
-        'Examen:Quizz - Modelo Educativo (Real)',
-        'Examen:Quizz - Educación Ambiental (Real)'
-    ]
-    
-    for col in columnas_examenes:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-            
-    if 'Total del curso (Real)' in df.columns:
-        df['nota_final'] = pd.to_numeric(df['Total del curso (Real)'], errors='coerce').fillna(0.0)
-    else:
-        df['nota_final'] = 0.0
-    
-    columnas_grupo = [c for c in df.columns if 'grupo' in c.lower()]
-    if columnas_grupo:
-        df['grupo'] = df[columnas_grupo[0]].fillna('Sin Grupo').astype(str).str.upper()
-    else:
-        df['grupo'] = 'GRUPO ÚNICO'
+    """
+    Esta función sustituye la lectura del archivo .ods.
+    Hace una petición en tiempo real a la API de Virtual UTTEC usando la llave de la universidad,
+    recibe el JSON original de los alumnos y lo transforma en un DataFrame estructurado para los gráficos.
+    """
+    if not TOKEN_MOODLE or not URL_MOODLE:
+        print("Falta configurar MOODLE_TOKEN o MOODLE_URL en las variables de entorno.")
+        return pd.DataFrame()
+
+    parametros = {
+        'wstoken': TOKEN_MOODLE,
+        'wsfunction': 'gradereport_user_get_grade_items', 
+        'moodlewsrestformat': 'json',
+        'courseid': ID_CURSO_DTIC
+    }
+
+    try:
+        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=10)
+        datos_moodle = respuesta.json()
         
+        lista_estudiantes = []
+        
+        if 'usergrades' in datos_moodle:
+            for usuario in datos_moodle['usergrades']:
+                nombre_completo = str(usuario.get('userfullname', 'ESTUDIANTE ANÓNIMO')).strip().upper()
+                
+                nota_final = 0.0
+                quizz_software = 0.0
+                quizz_redes = 0.0
+                quizz_modelo = 0.0
+                quizz_ambiental = 0.0
+                
+                for item in usuario.get('gradeitems', []):
+                    nombre_item = item.get('itemname', '')
+                    if nombre_item is None:
+                        continue
+                        
+                    valor_nota = item.get('graderaw', 0.0)
+                    try:
+                        valor_nota = float(valor_nota)
+                    except:
+                        valor_nota = 0.0
+                        
+                    if 'Total del curso' in nombre_item or item.get('itemtype') == 'course':
+                        nota_final = valor_nota
+                    elif 'Desarrollo Software' in nombre_item:
+                        quizz_software = valor_nota
+                    elif 'Redes' in nombre_item:
+                        quizz_redes = valor_nota
+                    elif 'Modelo Educativo' in nombre_item:
+                        quizz_modelo = valor_nota
+                    elif 'Educación Ambiental' in nombre_item:
+                        quizz_ambiental = valor_nota
+
+                lista_estudiantes.append({
+                    'alumno': nombre_completo,
+                    'grupo': str(usuario.get('groupname', 'GRUPO A')).strip().upper(), 
+                    'nota_final': nota_final,
+                    'Examen:Quizz Desarrollo Software (Real)': quizz_software,
+                    'Examen:Quizz - Redes (Real)': quizz_redes,
+                    'Examen:Quizz - Modelo Educativo (Real)': quizz_modelo,
+                    'Examen:Quizz - Educación Ambiental (Real)': quizz_ambiental
+                })
+                
+            df = pd.DataFrame(lista_estudiantes)
+        else:
+            print("Formato JSON inesperado o sin permisos de curso.")
+            df = pd.DataFrame()
+            
+    except Exception as e:
+        print(f"Error de conexión con la API de Virtual UTTEC: {str(e)}")
+        df = pd.DataFrame()
+
     return df
 
 app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exceptions=True)
@@ -65,21 +105,21 @@ app.layout = html.Div([
 def render_pagina_general():
     df = obtener_datos_procesados()
     if df.empty:
-        return html.Div("Error: No se encontró el archivo 'Calificaciones de Virtual.ods' en el servidor.")
+        return html.Div("Error: No se pudieron recuperar datos en tiempo real desde los servidores de Virtual UTTEC. Verifica las API Keys.", style={'padding': '30px', 'color': 'red'})
         
-    lista_grupos = sorted(df['grupo'].unique())
+    lista_groups = sorted(df['grupo'].unique()) if 'grupo' in df.columns else ['ÚNICO']
     
     return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
         html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px'}, children=[
-            html.H1("Analítica del curso - Virtual UTTEC", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
-            html.P("Monitoreo inteligente asistido por IA de OpenAI para el Propedéutico DTIC", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
+            html.H1("Analítica del curso - En vivo desde Virtual UTTEC", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
+            html.P("Monitoreo automatizado mediante API Web Services y recomendaciones de OpenAI", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
         ]),
         
         html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '25px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
             html.Label("Filtrar Análisis por Grupo Académico:", style={'fontWeight': 'bold', 'color': '#333', 'display': 'block', 'marginBottom': '8px'}),
             dcc.Dropdown(
                 id='grupo-dropdown',
-                options=[{'label': f'Grupo: {g}', 'value': g} for g in lista_grupos] + [{'label': 'Mostrar Todos los Alumnos', 'value': 'TODOS'}],
+                options=[{'label': f'Grupo: {g}', 'value': g} for g in lista_groups] + [{'label': 'Mostrar Todos los Alumnos', 'value': 'TODOS'}],
                 value='TODOS',
                 clearable=False,
                 style={'width': '100%', 'maxWidth': '400px'}
@@ -96,7 +136,7 @@ def render_pagina_general():
         ]),
         
         html.Div(style={'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
-            html.H3("Listado de Estudiantes Inscritos (Haz clic en un nombre para ver su análisis)", style={'color': '#003366', 'marginTop': '0', 'marginBottom': '20px'}),
+            html.H3("Listado de Estudiantes Inscritos (Sincronizado vía API)", style={'color': '#003366', 'marginTop': '0', 'marginBottom': '20px'}),
             html.Div(id='tabla-alumnos-container')
         ])
     ])
@@ -104,7 +144,7 @@ def render_pagina_general():
 def render_pagina_individual(nombre_alumno):
     df = obtener_datos_procesados()
     if df.empty:
-        return html.Div("Error en la carga de datos.")
+        return html.Div("Error en la carga de datos de la API.")
         
     registro = df[df['alumno'] == nombre_alumno]
     if registro.empty:
@@ -131,10 +171,9 @@ def render_pagina_individual(nombre_alumno):
         'Educación Ambiental': datos.get('Examen:Quizz - Educación Ambiental (Real)', 0.0)
     }
     
-    # --- CONEXIÓN E INTEGRACIÓN CON LA API DE OPENAI ---
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo", 
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Eres un tutor académico experto de la Universidad Tecnológica de Tecámac (UTTEC). Tu labor es dar una recomendación pedagógica breve y directa (máximo 3 renglones) según las calificaciones obtenidas por el alumno en sus quizzes del curso propedéutico de la Dirección de TIC."},
                 {"role": "user", "content": f"Por favor analiza al estudiante con Promedio Final: {nota}. Sus calificaciones individuales en Quizzes son: Desarrollo Software: {quizzes['Desarrollo Software']}, Redes: {quizzes['Redes']}, Modelo Educativo: {quizzes['Modelo Educativo']}, Educación Ambiental: {quizzes['Educación Ambiental']}. Genera una acción o estrategia de mejora específica."}
@@ -144,8 +183,7 @@ def render_pagina_individual(nombre_alumno):
         )
         recomendacion_ia = response.choices[0].message.content.strip()
     except Exception as e:
-        # Respaldo seguro por si la API llegara a fallar por falta de saldo o conexión
-        recomendacion_ia = f"Sugerencia estándar: Monitorear entregas en plataforma. (Nota técnica: No se pudo conectar con OpenAI: {str(e)})"
+        recomendacion_ia = f"Sugerencia estándar: Monitorear entregas en plataforma. (Nota técnica: No se pudo conectar con OpenAI o saldo insuficiente)"
     
     fig_pastel_individual = px.pie(
         names=list(quizzes.keys()),
@@ -160,7 +198,6 @@ def render_pagina_individual(nombre_alumno):
         dcc.Link("← Volver a la vista general", href="/", style={'textDecoration': 'none', 'color': '#003366', 'fontWeight': 'bold', 'display': 'inline-block', 'marginBottom': '20px'}),
         
         html.Div(style={'backgroundColor': 'white', 'padding': '30px', 'borderRadius': '10px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'display': 'grid', 'gridTemplateColumns': '1.2fr 0.8fr', 'gap': '30px'}, children=[
-            
             html.Div(children=[
                 html.H2(nombre_alumno, style={'color': '#003366', 'margin': '0 0 5px 0', 'fontSize': '28px'}),
                 html.P(f"Grupo: {grupo}", style={'color': '#7f8c8d', 'margin': '0 0 25px 0', 'fontSize': '16px'}),
@@ -177,10 +214,7 @@ def render_pagina_individual(nombre_alumno):
                 ]),
                 
                 html.H4(" Recomendación de Tutoría Inteligente (OpenAI GPT):", style={'color': '#003366', 'marginBottom': '8px'}),
-                html.P(
-                    recomendacion_ia,
-                    style={'color': '#2c3e50', 'lineHeight': '1.6', 'fontSize': '15px', 'backgroundColor': '#eef2f7', 'padding': '15px', 'borderRadius': '6px', 'fontStyle': 'italic'}
-                )
+                html.P(recomendacion_ia, style={'color': '#2c3e50', 'lineHeight': '1.6', 'fontSize': '15px', 'backgroundColor': '#eef2f7', 'padding': '15px', 'borderRadius': '6px', 'fontStyle': 'italic'})
             ]),
             
             html.Div(style={'borderLeft': '1px solid #eee', 'paddingLeft': '20px'}, children=[
