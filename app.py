@@ -14,7 +14,7 @@ client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 TOKEN_MOODLE = os.environ.get("MOODLE_TOKEN")
 URL_MOODLE = os.environ.get("MOODLE_URL")
 
-ID_CURSO_DTIC = 1  
+ID_CURSO_DTIC = 50
 
 server = Flask(__name__)
 
@@ -38,7 +38,7 @@ def obtener_datos_procesados():
     try:
         respuesta = requests.get(URL_MOODLE, params=parametros, timeout=10)
         datos_moodle = respuesta.json()
-        
+        print("DIAGNÓSTICO MOODLE:", datos_moodle)
         lista_estudiantes = []
         
         if 'usergrades' in datos_moodle:
