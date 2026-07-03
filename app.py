@@ -19,13 +19,8 @@ ID_CURSO_DTIC = 50
 server = Flask(__name__)
 
 def obtener_datos_procesados():
-    """
-    Esta función sustituye la lectura del archivo .ods.
-    Hace una petición en tiempo real a la API de Virtual UTTEC usando la llave de la universidad,
-    recibe el JSON original de los alumnos y lo transforma en un DataFrame estructurado para los gráficos.
-    """
     if not TOKEN_MOODLE or not URL_MOODLE:
-        print("Falta configurar MOODLE_TOKEN o MOODLE_URL en las variables de entorno.")
+        print("Falta configurar MOODLE_TOKEN o MOODLE_URL.")
         return pd.DataFrame()
 
     parametros = {
@@ -36,7 +31,7 @@ def obtener_datos_procesados():
     }
 
     try:
-        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=10)
+        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=30)
         datos_moodle = respuesta.json()
         print("DIAGNÓSTICO MOODLE:", datos_moodle)
         lista_estudiantes = []
