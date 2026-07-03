@@ -2,7 +2,7 @@ from flask import Flask
 import pandas as pd
 import os
 import urllib.parse
-import requests  
+import requests
 from dash import Dash, dcc, html, Input, Output
 import plotly.express as px
 from openai import OpenAI
@@ -25,7 +25,7 @@ def obtener_datos_procesados():
 
     parametros = {
         'wstoken': TOKEN_MOODLE,
-        'wsfunction': 'gradereport_user_get_grade_items', 
+        'wsfunction': 'gradereport_user_get_grade_items',
         'moodlewsrestformat': 'json',
         'courseid': ID_CURSO_DTIC
     }
@@ -33,12 +33,18 @@ def obtener_datos_procesados():
     try:
         respuesta = requests.get(URL_MOODLE, params=parametros, timeout=30)
         datos_moodle = respuesta.json()
-        print("DIAGNÓSTICO MOODLE:", datos_moodle)
+        
         lista_estudiantes = []
         
         if 'usergrades' in datos_moodle:
             for usuario in datos_moodle['usergrades']:
                 nombre_completo = str(usuario.get('userfullname', 'ESTUDIANTE ANÓNIMO')).strip().upper()
+                
+                nombre_grupo = 'SIN GRUPO ASIGNADO'
+                if 'groups' in usuario and usuario['groups']:
+                    nombre_grupo = str(usuario['groups'][0].get('name', 'SIN GRUPO ASIGNADO')).strip().upper()
+                elif 'groupname' in usuario:
+                    nombre_grupo = str(usuario.get('groupname', 'SIN GRUPO ASIGNADO')).strip().upper()
                 
                 nota_final = 0.0
                 quizz_software = 0.0
@@ -49,45 +55,44 @@ def obtener_datos_procesados():
                 for item in usuario.get('gradeitems', []):
                     nombre_item = item.get('itemname', '')
                     if nombre_item is None:
-                        continue
-                        
+                        nombre_item = ''
+                    
                     valor_nota = item.get('graderaw', 0.0)
                     try:
-                        valor_nota = float(valor_nota)
+                        valor_nota = float(valor_nota) if valor_nota is not None else 0.0
                     except:
                         valor_nota = 0.0
                         
-                    if 'Total del curso' in nombre_item or item.get('itemtype') == 'course':
+                    if item.get('itemtype') == 'course' or 'TOTAL DEL CURSO' in nombre_item.upper():
                         nota_final = valor_nota
-                    elif 'Desarrollo Software' in nombre_item:
+                    elif 'SOFTWARE' in nombre_item.upper() or 'DESARROLLO' in nombre_item.upper():
                         quizz_software = valor_nota
-                    elif 'Redes' in nombre_item:
+                    elif 'REDES' in nombre_item.upper():
                         quizz_redes = valor_nota
-                    elif 'Modelo Educativo' in nombre_item:
+                    elif 'MODELO' in nombre_item.upper() or 'EDUCATIVO' in nombre_item.upper():
                         quizz_modelo = valor_nota
-                    elif 'Educación Ambiental' in nombre_item:
+                    elif 'AMBIENTAL' in nombre_item.upper() or 'EDUCACIÓN AMBIENTAL' in nombre_item.upper():
                         quizz_ambiental = valor_nota
 
                 lista_estudiantes.append({
-                    'alumno': nombre_completo,
-                    'grupo': str(usuario.get('groupname', 'GRUPO A')).strip().upper(), 
+                    'alumno': nombre_completo, 
+                    'grupo': nombre_grupo, 
                     'nota_final': nota_final,
-                    'Examen:Quizz Desarrollo Software (Real)': quizz_software,
+                    'Examen:Quizz Desarrollo Software (Real)': quizz_software, 
                     'Examen:Quizz - Redes (Real)': quizz_redes,
-                    'Examen:Quizz - Modelo Educativo (Real)': quizz_modelo,
+                    'Examen:Quizz - Modelo Educativo (Real)': quizz_modelo, 
                     'Examen:Quizz - Educación Ambiental (Real)': quizz_ambiental
                 })
-                
+            
             df = pd.DataFrame(lista_estudiantes)
+            return df
         else:
-            print("Formato JSON inesperado o sin permisos de curso.")
-            df = pd.DataFrame()
+            print("La respuesta de Moodle no contiene la estructura esperada.")
+            return pd.DataFrame()
             
     except Exception as e:
-        print(f"Error de conexión con la API de Virtual UTTEC: {str(e)}")
-        df = pd.DataFrame()
-
-    return df
+        print(f"Error crítico en la extracción de datos API Moodle: {str(e)}")
+        return pd.DataFrame()
 
 app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exceptions=True)
 application = app.server
@@ -100,21 +105,21 @@ app.layout = html.Div([
 def render_pagina_general():
     df = obtener_datos_procesados()
     if df.empty:
-        return html.Div("Error: No se pudieron recuperar datos en tiempo real desde los servidores de Virtual UTTEC. Verifica las API Keys.", style={'padding': '30px', 'color': 'red'})
+        return html.Div("Error: No se pudieron recuperar datos válidos desde la API de Virtual UTTEC.", style={'padding': '30px', 'color': 'red'})
         
-    lista_groups = sorted(df['grupo'].unique()) if 'grupo' in df.columns else ['ÚNICO']
+    lista_grupos = sorted(df['grupo'].unique())
     
     return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
         html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px'}, children=[
             html.H1("Analítica del curso - En vivo desde Virtual UTTEC", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
-            html.P("Monitoreo automatizado mediante API Web Services y recomendaciones de OpenAI", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
+            html.P("Monitoreo en tiempo real sincronizado vía API Web Services de Moodle", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
         ]),
         
         html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '25px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
             html.Label("Filtrar Análisis por Grupo Académico:", style={'fontWeight': 'bold', 'color': '#333', 'display': 'block', 'marginBottom': '8px'}),
             dcc.Dropdown(
                 id='grupo-dropdown',
-                options=[{'label': f'Grupo: {g}', 'value': g} for g in lista_groups] + [{'label': 'Mostrar Todos los Alumnos', 'value': 'TODOS'}],
+                options=[{'label': f'Grupo: {g}', 'value': g} for g in lista_grupos] + [{'label': 'Mostrar Todos los Alumnos', 'value': 'TODOS'}],
                 value='TODOS',
                 clearable=False,
                 style={'width': '100%', 'maxWidth': '400px'}
@@ -139,7 +144,7 @@ def render_pagina_general():
 def render_pagina_individual(nombre_alumno):
     df = obtener_datos_procesados()
     if df.empty:
-        return html.Div("Error en la carga de datos de la API.")
+        return html.Div("Error en la carga de datos.")
         
     registro = df[df['alumno'] == nombre_alumno]
     if registro.empty:
@@ -178,7 +183,7 @@ def render_pagina_individual(nombre_alumno):
         )
         recomendacion_ia = response.choices[0].message.content.strip()
     except Exception as e:
-        recomendacion_ia = f"Sugerencia estándar: Monitorear entregas en plataforma. (Nota técnica: No se pudo conectar con OpenAI o saldo insuficiente)"
+        recomendacion_ia = f"Sugerencia estándar: Monitorear entregas en plataforma Moodle."
     
     fig_pastel_individual = px.pie(
         names=list(quizzes.keys()),
@@ -195,7 +200,7 @@ def render_pagina_individual(nombre_alumno):
         html.Div(style={'backgroundColor': 'white', 'padding': '30px', 'borderRadius': '10px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'display': 'grid', 'gridTemplateColumns': '1.2fr 0.8fr', 'gap': '30px'}, children=[
             html.Div(children=[
                 html.H2(nombre_alumno, style={'color': '#003366', 'margin': '0 0 5px 0', 'fontSize': '28px'}),
-                html.P(f"Grupo: {grupo}", style={'color': '#7f8c8d', 'margin': '0 0 25px 0', 'fontSize': '16px'}),
+                html.P(f"Grupo Moodle: {grupo}", style={'color': '#7f8c8d', 'margin': '0 0 25px 0', 'fontSize': '16px'}),
                 
                 html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr', 'gap': '20px', 'marginBottom': '25px'}, children=[
                     html.Div(style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '6px', 'borderLeft': f'5px solid {color_alert}'}, children=[
