@@ -44,7 +44,7 @@ def obtener_datos_procesados():
     }
 
     try:
-        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=30)
+        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=60)
         datos_moodle = respuesta.json()
         lista_estudiantes = []
         
