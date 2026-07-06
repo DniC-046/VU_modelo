@@ -203,7 +203,7 @@ def controlar_rutas(pathname):
     Input('grupo-dropdown', 'value')
 )
 def actualizar_panel_general(grupo_seleccionado):
-    df = obtener_datos_processed = obtener_datos_procesados()
+    df = obtener_datos_procesados()
     if df.empty: return {}, {}, ""
     if grupo_seleccionado != 'TODOS': df = df[df['grupo'] == grupo_seleccionado]
         
