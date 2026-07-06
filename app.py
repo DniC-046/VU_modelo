@@ -14,7 +14,7 @@ load_dotenv()
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 TOKEN_MOODLE = os.environ.get("MOODLE_TOKEN")
 URL_MOODLE = os.environ.get("MOODLE_URL")
-ID_CURSO_DTIC = 45  
+ID_CURSO_DTIC = 50
 
 server = Flask(__name__)
 
@@ -38,9 +38,9 @@ def obtener_datos_procesados():
 
     parametros = {
         'wstoken': TOKEN_MOODLE,
-        'wsfunction': 'gradereport_user_get_grade_items',
+        'wsfunction': 'gradereport_user_get_grades_table',
         'moodlewsrestformat': 'json',
-        'courseid': ID_CURSO_DTIC
+        'courseid': 50
     }
 
     try:
