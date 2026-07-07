@@ -264,4 +264,5 @@ def actualizar_dashboard_global(carrera_sel, curso_sel, grupo_sel):
     return fig_pie, fig_bar, tabla_html, ""
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    puerto = int(os.environ.get('PORT', 5000))
+    app.run_server(debug=False, host='0.0.0.0', port=puerto)
