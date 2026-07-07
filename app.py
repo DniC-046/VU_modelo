@@ -9,6 +9,7 @@ from flask_caching import Cache
 
 app = dash.Dash(__name__, title="Analítica UTTEC - Institucional")
 server = app.server
+application = server
 
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'FileSystemCache',
