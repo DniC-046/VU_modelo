@@ -1,230 +1,267 @@
-from flask import Flask
-from flask_caching import Cache  
-import pandas as pd
 import os
-import urllib.parse
 import requests
-from dash import Dash, dcc, html, Input, Output
+import pandas as pd
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
 import plotly.express as px
-from openai import OpenAI
-from dotenv import load_dotenv
+from flask_caching import Cache
 
-load_dotenv()
+app = dash.Dash(__name__, title="Analítica UTTEC - Institucional")
+server = app.server
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-TOKEN_MOODLE = os.environ.get("MOODLE_TOKEN")
-URL_MOODLE = os.environ.get("MOODLE_URL")
-ID_CURSO_DTIC = 50
-
-server = Flask(__name__)
-
-cache = Cache(server, config={
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 600  # 600 segundos = 10 minutos. Los datos se actualizarán de Moodle cada 10 min.
+cache = Cache(app.server, config={
+    'CACHE_TYPE': 'FileSystemCache',
+    'CACHE_DIR': 'cache-directory',
+    'CACHE_DEFAULT_TIMEOUT': 600 # 10 minutos en memoria
 })
 
-app = Dash(__name__, server=server, url_base_pathname='/', suppress_callback_exceptions=True)
-application = app.server
+URL_MOODLE = "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php"
+MOODLE_TOKEN = os.environ.get("MOODLE_TOKEN")
 
-@cache.memoize(timeout=600) 
+@cache.memoize(timeout=600)
 def obtener_datos_procesados():
     """
-    Esta función va a Moodle, pero gracias a @cache.memoize, si se vuelve a llamar antes de 10 minutos,
-    devuelve la información instantáneamente desde la memoria RAM del servidor sin viajar por internet.
+    Recupera dinámicamente todas las categorías (carreras), cursos y calificaciones 
+    desde el Web Service de Virtual UTTEC.
     """
-    if not TOKEN_MOODLE or not URL_MOODLE:
-        print("Falta configurar MOODLE_TOKEN o MOODLE_URL.")
+    if not MOODLE_TOKEN:
+        print("Error: No se encontró el MOODLE_TOKEN en las variables de entorno.")
         return pd.DataFrame()
 
-    parametros = {
-        'wstoken': TOKEN_MOODLE,
-        'wsfunction': 'gradereport_user_get_grades_table',
-        'moodlewsrestformat': 'json',
-        'courseid': 50
-    }
+    lista_completa_alumnos = []
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
     try:
-        respuesta = requests.get(URL_MOODLE, params=parametros, timeout=60)
-        datos_moodle = respuesta.json()
-        lista_estudiantes = []
+        param_cat = {
+            'wstoken': MOODLE_TOKEN,
+            'wsfunction': 'core_course_get_categories',
+            'moodlewsrestformat': 'json'
+        }
+        res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=30)
+        categorias = res_cat.json()
         
-        if 'usergrades' in datos_moodle:
-            for usuario in datos_moodle['usergrades']:
-                nombre_completo = str(usuario.get('userfullname', 'ESTUDIANTE ANÓNIMO')).strip().upper()
-                
-                nombre_grupo = 'SIN GRUPO ASIGNADO'
-                if 'groups' in usuario and usuario['groups']:
-                    nombre_grupo = str(usuario['groups'][0].get('name', 'SIN GRUPO ASIGNADO')).strip().upper()
-                elif 'groupname' in usuario:
-                    nombre_grupo = str(usuario.get('groupname', 'SIN GRUPO ASIGNADO')).strip().upper()
-                
-                nota_final, quizz_software, quizz_redes, quizz_modelo, quizz_ambiental = 0.0, 0.0, 0.0, 0.0, 0.0
-                
-                for item in usuario.get('gradeitems', []):
-                    nombre_item = item.get('itemname', '') or ''
-                    valor_nota = item.get('graderaw', 0.0)
-                    try:
-                        valor_nota = float(valor_nota) if valor_nota is not None else 0.0
-                    except:
-                        valor_nota = 0.0
-                        
-                    if item.get('itemtype') == 'course' or 'TOTAL DEL CURSO' in nombre_item.upper():
-                        nota_final = valor_nota
-                    elif 'SOFTWARE' in nombre_item.upper() or 'DESARROLLO' in nombre_item.upper():
-                        quizz_software = valor_nota
-                    elif 'REDES' in nombre_item.upper():
-                        quizz_redes = valor_nota
-                    elif 'MODELO' in nombre_item.upper() or 'EDUCATIVO' in nombre_item.upper():
-                        quizz_modelo = valor_nota
-                    elif 'AMBIENTAL' in nombre_item.upper() or 'EDUCACIÓN AMBIENTAL' in nombre_item.upper():
-                        quizz_ambiental = valor_nota
+        if not isinstance(categorias, list) or "exception" in categorias:
+            print("Error al recuperar categorías o token inválido.")
+            return pd.DataFrame()
 
-                lista_estudiantes.append({
-                    'alumno': nombre_completo, 'grupo': nombre_grupo, 'nota_final': nota_final,
-                    'Examen:Quizz Desarrollo Software (Real)': quizz_software, 'Examen:Quizz - Redes (Real)': quizz_redes,
-                    'Examen:Quizz - Modelo Educativo (Real)': quizz_modelo, 'Examen:Quizz - Educación Ambiental (Real)': quizz_ambiental
-                })
+        param_cur = {
+            'wstoken': MOODLE_TOKEN,
+            'wsfunction': 'core_course_get_courses',
+            'moodlewsrestformat': 'json'
+        }
+        res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=30)
+        cursos = res_cur.json()
+
+        if not isinstance(cursos, list):
+            print("No se encontraron cursos mapeables.")
+            return pd.DataFrame()
+
+        for curso in cursos:
+            course_id = curso.get('id')
+            nombre_curso = curso.get('fullname')
+            id_categoria = curso.get('categoryid')
             
-            return pd.DataFrame(lista_estudiantes)
-        return pd.DataFrame()
+            nombre_carrera = next((cat['name'] for cat in categorias if cat['id'] == id_categoria), "General / Propedéutico")
+
+            if course_id == 1:
+                continue
+
+            param_calif = {
+                'wstoken': MOODLE_TOKEN,
+                'wsfunction': 'gradereport_user_get_grades_table',
+                'moodlewsrestformat': 'json',
+                'courseid': course_id
+            }
+            
+            res_calif = requests.get(URL_MOODLE, params=param_calif, timeout=30)
+            data_curso = res_calif.json()
+
+            if not data_curso or "tables" not in data_curso:
+                continue
+
+            for tabla_usuario in data_curso.get('tables', []):
+                user_id = tabla_usuario.get('userid')
+                user_fullname = tabla_usuario.get('userfullname')
+                
+                nota_final = 0.0
+                for item in tabla_usuario.get('tabledata', []):
+                    if item.get('itemname') and 'total' in item.get('itemname').get('text', '').lower():
+                        try:
+                            nota_final = float(item.get('grade', {}).get('text', '0.0'))
+                        except ValueError:
+                            nota_final = 0.0
+
+                grupo_detectado = "Sin Grupo Asignado"
+                if "-" in nombre_curso:
+                    partes = nombre_curso.split("-")
+                    grupo_detectado = partes[-1].strip()
+                elif "grupo" in nombre_curso.lower():
+                    grupo_detectado = nombre_curso.split()[-1]
+
+                lista_completa_alumnos.append({
+                    'id_estudiante': user_id,
+                    'nombre_alumno': user_fullname,
+                    'carrera': nombre_carrera,
+                    'curso': nombre_curso,
+                    'grupo': grupo_detectado,
+                    'calificacion_final': nota_final
+                })
+
+        df_institucional = pd.DataFrame(lista_completa_alumnos)
+        return df_institucional
+
     except Exception as e:
-        print(f"Error en API Moodle: {str(e)}")
+        print(f"Excepción crítica durante la recolección masiva: {e}")
         return pd.DataFrame()
 
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
-])
 
-def render_pagina_general():
-    df = obtener_datos_procesados()
-    if df.empty:
-        return html.Div("Error: No se pudieron recuperar datos desde Moodle.", style={'padding': '30px', 'color': 'red'})
-        
-    lista_grupos = sorted(df['grupo'].unique())
+df_inicial = obtener_datos_procesados()
+
+app.layout = html.Div(style={'backgroundColor': '#1e1e1e', 'color': '#ffffff', 'fontFamily': 'Arial', 'padding': '20px'}, children=[
+    html.H1("Analítica Institucional - Dashboard Universidad", style={'textAlign': 'center', 'color': '#00adb5'}),
+    html.P("Monitoreo automatizado global de rendimiento por Carrera, Curso y Grupo", style={'textAlign': 'center'}),
     
-    return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
-        html.Div(style={'backgroundColor': '#003366', 'color': 'white', 'padding': '25px', 'borderRadius': '10px', 'marginBottom': '25px'}, children=[
-            html.H1("Analítica del curso - En vivo desde Virtual UTTEC", style={'margin': '0', 'fontSize': '28px', 'fontWeight': '600'}),
-            html.P("Monitoreo en tiempo real con sistema de caché de alta velocidad", style={'margin': '5px 0 0 0', 'opacity': '0.9'})
-        ]),
-        html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'marginBottom': '25px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
-            html.Label("Filtrar Análisis por Grupo Académico:", style={'fontWeight': 'bold', 'color': '#333', 'display': 'block', 'marginBottom': '8px'}),
+    html.Div(style={'display': 'flex', 'gap': '15px', 'marginBottom': '30px', 'justifyContent': 'center'}, children=[
+        html.Div(style={'width': '30%'}, children=[
+            html.Label("1. Filtrar por Carrera / División:", style={'fontWeight': 'bold'}),
             dcc.Dropdown(
-                id='grupo-dropdown',
-                options=[{'label': f'Grupo: {g}', 'value': g} for g in lista_grupos] + [{'label': 'Mostrar Todos los Alumnos', 'value': 'TODOS'}],
-                value='TODOS',
-                clearable=False,
-                style={'width': '100%', 'maxWidth': '400px'}
+                id='carrera-dropdown',
+                options=[] if df_inicial.empty else [{'label': c, 'value': c} for c in df_inicial['carrera'].unique()],
+                placeholder="Selecciona una Carrera",
+                style={'color': '#000000'}
             )
         ]),
-        html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr', 'gap': '25px', 'marginBottom': '30px'}, children=[
-            html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[dcc.Graph(id='grafico-pastel-general')]),
-            html.Div(style={'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[dcc.Graph(id='grafico-barras-general')])
+        html.Div(style={'width': '30%'}, children=[
+            html.Label("2. Filtrar por Curso:", style={'fontWeight': 'bold'}),
+            dcc.Dropdown(
+                id='curso-dropdown',
+                placeholder="Selecciona un Curso",
+                style={'color': '#000000'}
+            )
         ]),
-        html.Div(style={'backgroundColor': 'white', 'padding': '25px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
-            html.H3("Listado de Estudiantes Inscritos", style={'color': '#003366', 'marginTop': '0', 'marginBottom': '20px'}),
-            html.Div(id='tabla-alumnos-container')
+        html.Div(style={'width': '30%'}, children=[
+            html.Label("3. Filtrar por Grupo Académico:", style={'fontWeight': 'bold'}),
+            dcc.Dropdown(
+                id='grupo-dropdown',
+                placeholder="Selecciona un Grupo",
+                style={'color': '#000000'}
+            )
+        ]),
+    ]),
+
+    html.Div(id='mensaje-estado-container', style={'color': '#ff414d', 'textAlign': 'center', 'fontWeight': 'bold'}),
+
+    html.Div(style={'display': 'flex', 'gap': '20px'}, children=[
+        html.Div(style={'width': '50%', 'backgroundColor': '#252525', 'padding': '15px', 'borderRadius': '8px'}, children=[
+            dcc.Graph(id='grafico-pastel-general')
+        ]),
+        html.Div(style={'width': '50%', 'backgroundColor': '#252525', 'padding': '15px', 'borderRadius': '8px'}, children=[
+            dcc.Graph(id='grafico-barras-general')
         ])
+    ]),
+
+    html.Div(style={'marginTop': '30px', 'backgroundColor': '#252525', 'padding': '20px', 'borderRadius': '8px'}, children=[
+        html.H3("Desglose Nominal de Rendimiento Académico", style={'color': '#00adb5'}),
+        html.Div(id='tabla-alumnos-container')
     ])
+])
 
-def render_pagina_individual(nombre_alumno):
-    df = obtener_datos_procesados()
-    if df.empty: return html.Div("Error en la carga de datos.")
-    registro = df[df['alumno'] == nombre_alumno]
-    if registro.empty: return html.Div("Estudiante no encontrado.")
-    
-    datos = registro.iloc[0]
-    nota = datos['nota_final']
-    grupo = datos['grupo']
-    
-    estatus = "Excelente / Destacado" if nota >= 8.5 else "Regular / Aprobado" if nota >= 6.0 else "Alerta: Riesgo de Reprobación"
-    color_alert = "#2ecc71" if nota >= 8.5 else "#f39c12" if nota >= 6.0 else "#e74c3c"
-        
-    quizzes = {
-        'Desarrollo Software': datos.get('Examen:Quizz Desarrollo Software (Real)', 0.0),
-        'Redes': datos.get('Examen:Quizz - Redes (Real)', 0.0),
-        'Modelo Educativo': datos.get('Examen:Quizz - Modelo Educativo (Real)', 0.0),
-        'Educación Ambiental': datos.get('Examen:Quizz - Educación Ambiental (Real)', 0.0)
-    }
-    
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Eres un tutor académico experto de la UTTEC. Da una recomendación breve (máximo 3 renglones) según las notas de los quizzes del curso propedéutico de la Dirección de TIC."},
-                {"role": "user", "content": f"Estudiante con Promedio Final: {nota}. Quizzes: Desarrollo Software: {quizzes['Desarrollo Software']}, Redes: {quizzes['Redes']}, Modelo Educativo: {quizzes['Modelo Educativo']}, Educación Ambiental: {quizzes['Educación Ambiental']}. Genera una estrategia corta."}
-            ],
-            max_tokens=150,
-            temperature=0.7
-        )
-        recomendacion_ia = response.choices[0].message.content.strip()
-    except:
-        recomendacion_ia = "Sugerencia estándar: Monitorear entregas en plataforma Moodle."
-    
-    fig_pastel_individual = px.pie(names=list(quizzes.keys()), values=list(quizzes.values()), title="Desglose de Rendimiento", hole=0.4)
-    fig_pastel_individual.update_layout(margin=dict(t=50, b=10, l=10, r=10))
-
-    return html.Div(style={'fontFamily': 'Segoe UI, Arial', 'padding': '30px', 'backgroundColor': '#f8f9fa'}, children=[
-        dcc.Link("← Volver a la vista general", href="/", style={'textDecoration': 'none', 'color': '#003366', 'fontWeight': 'bold', 'display': 'inline-block', 'marginBottom': '20px'}),
-        html.Div(style={'backgroundColor': 'white', 'padding': '30px', 'borderRadius': '10px', 'boxShadow': '0 4px 6px rgba(0,0,0,0.05)', 'display': 'grid', 'gridTemplateColumns': '1.2fr 0.8fr', 'gap': '30px'}, children=[
-            html.Div(children=[
-                html.H2(nombre_alumno, style={'color': '#003366', 'margin': '0 0 5px 0'}),
-                html.P(f"Grupo Moodle: {grupo}", style={'color': '#7f8c8d', 'margin': '0 0 25px 0'}),
-                html.Div(style={'display': 'grid', 'gridTemplateColumns': '1fr 1fr', 'gap': '20px', 'marginBottom': '25px'}, children=[
-                    html.Div(style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '6px', 'borderLeft': f'5px solid {color_alert}'}, children=[
-                        html.Small("PROMEDIO FINAL", style={'color': '#7f8c8d', 'fontWeight': 'bold'}),
-                        html.H3(f"{nota} pts")
-                    ]),
-                    html.Div(style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '6px'}, children=[
-                        html.Small("SITUACIÓN", style={'color': '#7f8c8d', 'fontWeight': 'bold'}),
-                        html.H4(estatus, style={'color': color_alert, 'margin': '5px 0 0 0'})
-                    ])
-                ]),
-                html.H4("💡 Recomendación de Tutoría Inteligente (OpenAI GPT):", style={'color': '#003366', 'marginBottom': '8px'}),
-                html.P(recomendacion_ia, style={'color': '#2c3e50', 'lineHeight': '1.6', 'backgroundColor': '#eef2f7', 'padding': '15px', 'borderRadius': '6px', 'fontStyle': 'italic'})
-            ]),
-            html.Div(style={'borderLeft': '1px solid #eee', 'paddingLeft': '20px'}, children=[
-                dcc.Graph(figure=fig_pastel_individual, config={'displayModeBar': False})
-            ])
-        ])
-    ])
-
-@app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
-def controlar_rutas(pathname):
-    if not pathname or pathname == '/': return render_pagina_general()
-    elif pathname.startswith('/alumno/'):
-        nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return render_pagina_individual(nombre_alumno)
-    return html.Div("404 - Página no encontrada")
 
 @app.callback(
-    [Output('grafico-pastel-general', 'figure'), Output('grafico-barras-general', 'figure'), Output('tabla-alumnos-container', 'children')],
-    Input('grupo-dropdown', 'value')
+    [Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options')],
+    [Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
 )
-def actualizar_panel_general(grupo_seleccionado):
+def set_dropdown_options(carrera_sel, curso_sel):
     df = obtener_datos_procesados()
-    if df.empty: return {}, {}, ""
-    if grupo_seleccionado != 'TODOS': df = df[df['grupo'] == grupo_seleccionado]
+    if df is None or df.empty:
+        return [], []
+    
+    df_filtrado = df.copy()
+    if carrera_sel:
+        df_filtrado = df_filtrado[df_filtrado['carrera'] == carrera_sel]
+    
+    opciones_cursos = [{'label': c, 'value': c} for c in df_filtrado['curso'].unique()]
+    
+    if curso_sel:
+        df_filtrado = df_filtrado[df_filtrado['curso'] == curso_sel]
         
-    df['rango'] = pd.cut(df['nota_final'], bins=[-1, 5.9, 7.9, 8.9, 10], labels=['Menor a 6 (Reprobado)', '7 - 7.9 (Regular)', '8 - 8.9 (Bueno)', '9 - 10 (Excelente)'])
-    conteos = df['rango'].value_counts().reset_index()
-    conteos.columns = ['Estatus', 'Cantidad']
+    opciones_grupos = [{'label': g, 'value': g} for g in df_filtrado['grupo'].unique()]
     
-    fig_pastel = px.pie(conteos, names='Estatus', values='Cantidad', title='Distribución General', hole=0.4, color_discrete_sequence=['#e74c3c', '#f39c12', '#3498db', '#2ecc71'])
-    fig_barras = px.bar(df, x='alumno', y='nota_final', color='nota_final', title='Rendimiento por Estudiante')
-    fig_barras.update_layout(xaxis_tickangle=-45, margin=dict(b=120))
+    return opciones_cursos, opciones_grupos
+
+
+@app.callback(
+    [Output('grafico-pastel-general', 'figure'), 
+     Output('grafico-barras-general', 'figure'), 
+     Output('tabla-alumnos-container', 'children'),
+     Output('mensaje-estado-container', 'children')],
+    [Input('carrera-dropdown', 'value'), 
+     Input('curso-dropdown', 'value'), 
+     Input('grupo-dropdown', 'value')]
+)
+def actualizar_dashboard_global(carrera_sel, curso_sel, grupo_sel):
+    df = obtener_datos_procesados()
     
-    elementos_lista = []
-    for _, fila in df.iterrows():
-        nombre_completo = fila['alumno']
-        elementos_lista.append(
-            html.Div(style={'padding': '12px 15px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'}, children=[
-                dcc.Link(nombre_completo, href=f"/alumno/{urllib.parse.quote(nombre_completo)}", style={'textDecoration': 'none', 'color': '#0056b3', 'fontWeight': '500'}),
-                html.Span(f"{fila['nota_final']} pts", style={'backgroundColor': '#e9ecef', 'padding': '4px 10px', 'borderRadius': '12px', 'fontSize': '13px', 'fontWeight': 'bold'})
+    if df is None or df.empty:
+        return {}, {}, html.Div("Fallo de sincronización con Moodle. Revisa el estatus del token corporativo."), "Error: No se pudieron recuperar datos institucionales de Virtual UTTEC."
+
+    df_render = df.copy()
+    if carrera_sel:
+        df_render = df_render[df_render['carrera'] == carrera_sel]
+    if curso_sel:
+        df_render = df_render[df_render['curso'] == curso_sel]
+    if grupo_sel:
+        df_render = df_render[df_render['grupo'] == grupo_sel]
+
+    if df_render.empty:
+        return {}, {}, html.Div("No hay alumnos matriculados con este set de filtros."), "Alerta: No hay datos para la combinación seleccionada."
+
+    df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo de Reprobación (<6.0)')
+    
+    fig_pie = px.pie(
+        df_render, names='Estatus', 
+        title="Estatus de Permanencia Académica",
+        color='Estatus',
+        color_discrete_map={'Aprobado (>=6.0)': '#00adb5', 'Riesgo de Reprobación (<6.0)': '#ff414d'},
+        template='plotly_dark'
+    )
+
+    fig_bar = px.bar(
+        df_render, x='nombre_alumno', y='calificacion_final',
+        color='calificacion_final',
+        title="Promedio Acumulado por Estudiante",
+        labels={'nombre_alumno': 'Estudiante', 'calificacion_final': 'Calificación Cruda'},
+        template='plotly_dark',
+        color_continuous_scale=px.colors.sequential.Viridis
+    )
+
+    tabla_html = html.Table(
+        style={'width': '100%', 'borderCollapse': 'collapse', 'marginTop': '10px', 'color': '#ffffff'},
+        children=[
+            html.Thead(html.Tr([
+                html.Th("Estudiante", style={'borderBottom': '2px solid #00adb5', 'padding': '10px', 'textAlign': 'left'}),
+                html.Th("Carrera / División", style={'borderBottom': '2px solid #00adb5', 'padding': '10px', 'textAlign': 'left'}),
+                html.Th("Asignatura / Curso", style={'borderBottom': '2px solid #00adb5', 'padding': '10px', 'textAlign': 'left'}),
+                html.Th("Grupo", style={'borderBottom': '2px solid #00adb5', 'padding': '10px', 'textAlign': 'center'}),
+                html.Th("Calificación", style={'borderBottom': '2px solid #00adb5', 'padding': '10px', 'textAlign': 'center'})
+            ])),
+            html.Tbody([
+                html.Tr(style={'borderBottom': '1px solid #333333'}, children=[
+                    html.Td(row['nombre_alumno'], style={'padding': '8px'}),
+                    html.Td(row['carrera'], style={'padding': '8px'}),
+                    html.Td(row['curso'], style={'padding': '8px'}),
+                    html.Td(row['grupo'], style={'padding': '8px', 'textAlign': 'center'}),
+                    html.Td(f"{row['calificacion_final']:.1f} pts", style={
+                        'padding': '8px', 'textAlign': 'center', 'fontWeight': 'bold',
+                        'color': '#00adb5' if row['calificacion_final'] >= 6.0 else '#ff414d'
+                    })
+                ]) for _, row in df_render.iterrows()
             ])
-        )
-    return fig_pastel, fig_barras, html.Div(elementos_lista, style={'maxHeight': '400px', 'overflowY': 'auto', 'border': '1px solid #ddd', 'borderRadius': '6px'})
+        ]
+    )
+
+    return fig_pie, fig_bar, tabla_html, ""
 
 if __name__ == '__main__':
-    server.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run_server(debug=True)
