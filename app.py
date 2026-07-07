@@ -13,7 +13,7 @@ application = server
 
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutos en memoria
+    'CACHE_DEFAULT_TIMEOUT': 300
 })
 
 URL_MOODLE = "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php"
@@ -22,43 +22,27 @@ URL_MOODLE = "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php"
 def obtener_datos_procesados():
     token_moodle = os.environ.get("MOODLE_TOKEN")
     if not token_moodle:
-        print("Moodle Cache Error: No se encontró la variable MOODLE_TOKEN.")
         return pd.DataFrame()
 
     lista_completa_alumnos = []
-
     try:
-        param_cat = {
-            'wstoken': token_moodle,
-            'wsfunction': 'core_course_get_categories',
-            'moodlewsrestformat': 'json'
-        }
-        res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=25)
+        param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
+        res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=20)
         categorias = res_cat.json()
-        
         if 'exception' in categorias or not isinstance(categorias, list):
-            print(f"Moodle API Exception en categorías: {categorias}")
             return pd.DataFrame()
 
-        param_cur = {
-            'wstoken': token_moodle,
-            'wsfunction': 'core_course_get_courses',
-            'moodlewsrestformat': 'json'
-        }
-        res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=25)
+        param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
+        res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=20)
         cursos = res_cur.json()
-
         if 'exception' in cursos or not isinstance(cursos, list):
-            print(f"Moodle API Exception en cursos: {cursos}")
             return pd.DataFrame()
 
         for curso in cursos:
             course_id = curso.get('id')
-            nombre_curso = curso.get('fullname', 'Curso sin nombre')
+            nombre_curso = curso.get('fullname', '')
             id_categoria = curso.get('categoryid')
-            
-            if course_id == 1:
-                continue
+            if course_id == 1: continue
 
             nombre_carrera = "General / Propedéutico"
             for cat in categorias:
@@ -72,36 +56,24 @@ def obtener_datos_procesados():
                 'moodlewsrestformat': 'json',
                 'courseid': course_id
             }
-            
             try:
-                res_calif = requests.get(URL_MOODLE, params=param_calif, timeout=15)
+                res_calif = requests.get(URL_MOODLE, params=param_calif, timeout=10)
                 data_curso = res_calif.json()
-                
-                if 'exception' in data_curso or 'tables' not in data_curso:
-                    continue
+                if 'exception' in data_curso or 'tables' not in data_curso: continue
                 
                 for tabla_usuario in data_curso.get('tables', []):
-                    user_fullname = tabla_usuario.get('userfullname', 'Estudiante anónimo')
-                    
+                    user_fullname = tabla_usuario.get('userfullname', '')
                     nota_final = 0.0
                     for item in tabla_usuario.get('tabledata', []):
-                        item_name_dict = item.get('itemname', {})
-                        item_text = ""
-                        if isinstance(item_name_dict, dict):
-                            item_text = item_name_dict.get('text', '').lower()
-                        
+                        item_text = item.get('itemname', {}).get('text', '').lower() if isinstance(item.get('itemname'), dict) else ""
                         if 'total' in item_text or 'curso' in item_text:
                             try:
-                                grade_dict = item.get('grade', {})
-                                nota_final = float(grade_dict.get('text', '0.0'))
+                                nota_final = float(item.get('grade', {}).get('text', '0.0'))
                             except:
                                 nota_final = 0.0
 
-                    grupo_detectado = "Sin Grupo Asignado"
-                    if "-" in nombre_curso:
-                        grupo_detectado = nombre_curso.split("-")[-1].strip().upper()
-                    elif "GRUPO" in nombre_curso.upper():
-                        grupo_detectado = nombre_curso.upper().split("GRUPO")[-1].strip()
+                    grupo_detectado = "Sin Grupo"
+                    if "-" in nombre_curso: grupo_detectado = nombre_curso.split("-")[-1].strip().upper()
 
                     lista_completa_alumnos.append({
                         'carrera': nombre_carrera.strip().upper(),
@@ -110,151 +82,82 @@ def obtener_datos_procesados():
                         'nombre_alumno': user_fullname.strip().upper(),
                         'calificacion_final': nota_final
                     })
-            except Exception as inner_error:
-                print(f"Error procesando curso ID {course_id}: {inner_error}")
+            except:
                 continue
-
         return pd.DataFrame(lista_completa_alumnos)
-
-    except Exception as e:
-        print(f"Excepción general en recolección Moodle: {e}")
+    except:
         return pd.DataFrame()
 
-app.layout = html.Div(style={'backgroundColor': '#121212', 'color': '#ffffff', 'fontFamily': 'Segoe UI, Arial', 'padding': '30px'}, children=[
-    html.Div(style={'borderBottom': '2px solid #00adb5', 'paddingBottom': '15px', 'marginBottom': '30px'}, children=[
-        html.H1("Analítica UTTEC - Control Institucional", style={'margin': '0', 'color': '#00adb5', 'fontWeight': '600'}),
-        html.P("Mapeo automatizado global en vivo desde la plataforma Virtual UTTEC", style={'margin': '5px 0 0 0', 'color': '#888888'})
-    ]),
+app.layout = html.Div(style={'backgroundColor': '#121212', 'color': '#ffffff', 'fontFamily': 'Arial', 'padding': '30px'}, children=[
+    dcc.Interval(id='trigger-inicial', interval=500, max_intervals=1), # Llama a Moodle 500ms después de abrir
+    html.H1("Analítica UTTEC - Control Institucional", style={'color': '#00adb5'}),
     
     html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
         html.Div(style={'flex': '1'}, children=[
-            html.Label("División / Carrera:", style={'fontWeight': '500', 'display': 'block', 'marginBottom': '8px'}),
-            dcc.Dropdown(id='carrera-dropdown', placeholder="Cargando divisiones...", style={'color': '#000000'})
+            html.Label("Carrera:"), dcc.Dropdown(id='carrera-dropdown', placeholder="Cargando desde Moodle...", style={'color': '#000'})
         ]),
         html.Div(style={'flex': '1'}, children=[
-            html.Label("Curso Moodle:", style={'fontWeight': '500', 'display': 'block', 'marginBottom': '8px'}),
-            dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera primero...", style={'color': '#000000'})
+            html.Label("Curso:"), dcc.Dropdown(id='curso-dropdown', placeholder="Esperando carrera...", style={'color': '#000'})
         ]),
         html.Div(style={'flex': '1'}, children=[
-            html.Label("Grupo Académico:", style={'fontWeight': '500', 'display': 'block', 'marginBottom': '8px'}),
-            dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso primero...", style={'color': '#000000'})
+            html.Label("Grupo:"), dcc.Dropdown(id='grupo-dropdown', placeholder="Esperando curso...", style={'color': '#000'})
         ]),
     ]),
-
-    html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
-
+    html.Div(id='mensaje-estado-container'),
     html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
-        html.Div(style={'width': '40%', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '8px'}, children=[
-            dcc.Graph(id='grafico-pastel-general')
-        ]),
-        html.Div(style={'width': '60%', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '8px'}, children=[
-            dcc.Graph(id='grafico-barras-general')
-        ])
+        html.Div(style={'width': '40%'}, children=[dcc.Graph(id='grafico-pastel-general')]),
+        html.Div(style={'width': '60%'}, children=[dcc.Graph(id='grafico-barras-general')])
     ]),
-
-    html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '8px'}, children=[
-        html.H3("Rendimiento Nominal de Estudiantes Matriculados", style={'color': '#00adb5', 'marginTop': '0'}),
-        html.Div(id='tabla-alumnos-container')
-    ])
+    html.Div(id='tabla-alumnos-container')
 ])
 
-
 @app.callback(
-    [Output('carrera-dropdown', 'options'),
-     Output('curso-dropdown', 'options'),
-     Output('grupo-dropdown', 'options')],
-    [Input('carrera-dropdown', 'value'),
-     Input('curso-dropdown', 'value')]
+    Output('carrera-dropdown', 'options'),
+    Input('trigger-inicial', 'n_intervals')
 )
-def poblar_filtros(carrera_sel, curso_sel):
+def cargar_carreras_iniciales(n):
     df = obtener_datos_procesados()
-    if df is None or df.empty:
-        return [], [], []
-
-    opciones_carreras = [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
-    
-    df_filtrado = df.copy()
-    if carrera_sel:
-        df_filtrado = df_filtrado[df_filtrado['carrera'] == carrera_sel]
-    opciones_cursos = [{'label': c, 'value': c} for c in sorted(df_filtrado['curso'].unique())]
-
-    if curso_sel:
-        df_filtrado = df_filtrado[df_filtrado['curso'] == curso_sel]
-    opciones_grupos = [{'label': g, 'value': g} for g in sorted(df_filtrado['grupo'].unique())]
-
-    return opciones_carreras, opciones_cursos, opciones_grupos
-
+    if df is None or df.empty: return []
+    return [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
 
 @app.callback(
-    [Output('grafico-pastel-general', 'figure'),
-     Output('grafico-barras-general', 'figure'),
-     Output('tabla-alumnos-container', 'children'),
-     Output('mensaje-estado-container', 'children')],
-    [Input('carrera-dropdown', 'value'),
-     Input('curso-dropdown', 'value'),
-     Input('grupo-dropdown', 'value')]
+    [Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options')],
+    [Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
+)
+def sincronizar_filtros(carrera_sel, curso_sel):
+    df = obtener_datos_procesados()
+    if df is None or df.empty: return [], []
+    df_f = df.copy()
+    if carrera_sel: df_f = df_f[df_f['carrera'] == carrera_sel]
+    op_cursos = [{'label': c, 'value': c} for c in sorted(df_f['curso'].unique())]
+    if curso_sel: df_f = df_f[df_f['curso'] == curso_sel]
+    op_grupos = [{'label': g, 'value': g} for g in sorted(df_f['grupo'].unique())]
+    return op_cursos, op_grupos
+
+@app.callback(
+    [Output('grafico-pastel-general', 'figure'), Output('grafico-barras-general', 'figure'), 
+     Output('tabla-alumnos-container', 'children'), Output('mensaje-estado-container', 'children')],
+    [Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value'), Input('grupo-dropdown', 'value')]
 )
 def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel):
     df = obtener_datos_procesados()
-    
     if df is None or df.empty:
-        return {}, {}, "", html.Div("Fallo de sincronización con Moodle. Verifique los alcances globales del Token en Virtual UTTEC.", style={'color': '#ff414d', 'fontWeight': 'bold'})
+        return {}, {}, "", html.Div("Sincronizando u obteniendo datos globales de Moodle...", style={'color': '#00adb5'})
 
     df_render = df.copy()
-    if carrera_sel:
-        df_render = df_render[df_render['carrera'] == carrera_sel]
-    if curso_sel:
-        df_render = df_render[df_render['curso'] == curso_sel]
-    if grupo_sel:
-        df_render = df_render[df_render['grupo'] == grupo_sel]
+    if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
+    if curso_sel: df_render = df_render[df_render['curso'] == curso_sel]
+    if grupo_sel: df_render = df_render[df_render['grupo'] == grupo_sel]
 
-    if df_render.empty:
-        return {}, {}, html.Div("No hay registros que coincidan con la selección.", style={'color': '#888'}), ""
-
-    df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo / Alerta (<6.0)')
-
-    fig_pie = px.pie(
-        df_render, names='Estatus', 
-        title="Distribución de Estatus Académico",
-        color='Estatus',
-        color_discrete_map={'Aprobado (>=6.0)': '#00adb5', 'Riesgo / Alerta (<6.0)': '#ff414d'},
-        template='plotly_dark'
-    )
-
-    fig_bar = px.bar(
-        df_render, x='nombre_alumno', y='calificacion_final',
-        color='calificacion_final',
-        title="Calificaciones Finales de Alumnos",
-        template='plotly_dark',
-        color_continuous_scale=px.colors.sequential.Teal
-    )
-    fig_bar.update_layout(xaxis_tickangle=-45)
-
-    # Construcción de la Tabla HTML
-    filas = []
-    for _, fila in df_render.iterrows():
-        filas.append(html.Tr(style={'borderBottom': '1px solid #222'}, children=[
-            html.Td(fila['nombre_alumno'], style={'padding': '10px'}),
-            html.Td(fila['carrera'], style={'padding': '10px'}),
-            html.Td(fila['curso'], style={'padding': '10px'}),
-            html.Td(fila['grupo'], style={'padding': '10px', 'textAlign': 'center'}),
-            html.Td(f"{fila['calificacion_final']:.1f}", style={
-                'padding': '10px', 'textAlign': 'center', 'fontWeight': 'bold',
-                'color': '#00adb5' if fila['calificacion_final'] >= 6.0 else '#ff414d'
-            })
-        ]))
-
-    tabla = html.Table(style={'width': '100%', 'borderCollapse': 'collapse', 'color': '#fff'}, children=[
-        html.Thead(html.Tr([
-            html.Th("Estudiante", style={'textAlign': 'left', 'padding': '10px', 'borderBottom': '2px solid #00adb5'}),
-            html.Th("Carrera", style={'textAlign': 'left', 'padding': '10px', 'borderBottom': '2px solid #00adb5'}),
-            html.Th("Curso", style={'textAlign': 'left', 'padding': '10px', 'borderBottom': '2px solid #00adb5'}),
-            html.Th("Grupo", style={'textAlign': 'center', 'padding': '10px', 'borderBottom': '2px solid #00adb5'}),
-            html.Th("Calificación", style={'textAlign': 'center', 'padding': '10px', 'borderBottom': '2px solid #00adb5'})
-        ])),
-        html.Tbody(filas)
-    ])
-
+    df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo (<6.0)')
+    fig_pie = px.pie(df_render, names='Estatus', title="Estatus Académico", template='plotly_dark')
+    fig_bar = px.bar(df_render, x='nombre_alumno', y='calificacion_final', title="Calificaciones", template='plotly_dark')
+    
+    filas = [html.Tr([
+        html.Td(r['nombre_alumno']), html.Td(r['carrera']), html.Td(r['curso']), html.Td(r['grupo']), html.Td(f"{r['calificacion_final']:.1f}")
+    ]) for _, r in df_render.iterrows()]
+    
+    tabla = html.Table(children=[html.Tbody(filas)], style={'width': '100%', 'color': '#fff'})
     return fig_pie, fig_bar, tabla, ""
 
 if __name__ == '__main__':
