@@ -1,4 +1,4 @@
-iimport os
+import os
 import requests
 import pandas as pd
 import dash
@@ -50,7 +50,6 @@ def extraer_grupo_profundo(tabla_usuario, nombre_curso):
     Analiza el árbol de datos de Moodle para extraer el grupo (ej. DSM 2024-3-1).
     Busca primero en las tablas internas del estudiante y luego en el nombre del curso.
     """
-    # 1. Búsqueda profunda en los diccionarios anidados de tabledata (Lógica del script de depuración)
     for item in tabla_usuario.get('tabledata', []):
         if not isinstance(item, dict): 
             continue
@@ -62,13 +61,12 @@ def extraer_grupo_profundo(tabla_usuario, nombre_curso):
             elif isinstance(v, str) and any(p in v for p in ['DSM', 'IRD', '202']):
                 return v.strip().upper()
                 
-    # 2. Mecanismo de respaldo basado en el nombre del curso si lo anterior falla
     if "-" in nombre_curso:
         return nombre_curso.split("-")[-1].strip().upper()
     elif "GRUPO" in nombre_curso.upper():
         return nombre_curso.upper().split("GRUPO")[-1].strip()
         
-    return "DSM 2024-3-1"  # Valor estático predeterminado para el Propedéutico DTIC
+    return "DSM 2024-3-1"
 
 def obtener_datos_moodle_live():
     """Consulta la API de Moodle de forma sincrónica y procesa las calificaciones."""
@@ -79,7 +77,6 @@ def obtener_datos_moodle_live():
 
     lista_completa_alumnos = []
     try:
-        # 1. Obtener Cursos
         param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
         res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
         cursos = res_cur.json()
@@ -93,14 +90,11 @@ def obtener_datos_moodle_live():
             course_id = curso.get('id')
             nombre_curso = curso.get('fullname', '').strip()
 
-            # Filtrar cursos inválidos o vacíos
             if course_id == 1 or not nombre_curso: 
                 continue
 
-            # Fijación estática de la división académica a DTIC
             nombre_carrera = "DTIC"
 
-            # 2. Consultar calificaciones por curso usando la función masiva
             param_calif = {
                 'wstoken': token_moodle,
                 'wsfunction': 'gradereport_user_get_grades_table',
@@ -142,7 +136,7 @@ def obtener_datos_moodle_live():
                         'nombre_alumno': user_fullname,
                         'calificacion_final': nota_final
                     })
-            except Exception as e:
+            except:
                 continue 
 
         return pd.DataFrame(lista_completa_alumnos)
@@ -164,7 +158,7 @@ def sync_moodle_background():
                 }
                 with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, ensure_ascii=False, indent=4)
-                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros.")
+                print(f"Hilo Sync: Sincronización exitosa. Guardados registros.")
                 time.sleep(600)
             else:
                 print("Hilo Sync: Moodle retornó DataFrame vacío. Reintentando en 60 segundos...")
