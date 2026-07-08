@@ -9,6 +9,16 @@ from flask_caching import Cache
 import urllib.parse
 from openai import OpenAI
 import json
+import dotenv
+import threading
+import time
+
+# Cargar variables de entorno de forma segura al inicio de la aplicación (Local y Producción)
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(dotenv_path):
+    dotenv.load_dotenv(dotenv_path)
+else:
+    dotenv.load_dotenv()
 
 # Inicialización de la aplicación con la fuente premium Outfit
 app = dash.Dash(
@@ -28,28 +38,39 @@ cache = Cache(app.server, config={
     'CACHE_DEFAULT_TIMEOUT': 300
 })
 
-URL_MOODLE = "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php"
+URL_MOODLE = os.environ.get("MOODLE_URL", "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php")
+JSON_FILE_PATH = 'data_moodle.json'
 
-@cache.memoize(timeout=300)
-def obtener_datos_procesados():
+# Caché en memoria para evitar I/O constante en disco
+_cached_df = pd.DataFrame()
+_cached_mtime = 0.0
+
+def obtener_datos_moodle_live():
+    """Consulta la API de Moodle de forma sincrónica y procesa las calificaciones."""
     token_moodle = os.environ.get("MOODLE_TOKEN")
     if not token_moodle:
-        print("Falta la variable de entorno MOODLE_TOKEN.")
+        print("Error: Falta la variable de entorno MOODLE_TOKEN.")
         return pd.DataFrame()
 
     lista_completa_alumnos = []
     try:
+        # 1. Obtener Categorías (Carreras)
         param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
         res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=15)
         categorias = res_cat.json()
         if 'exception' in categorias or not isinstance(categorias, list):
+            print("Error al obtener categorías de Moodle:", categorias)
             return pd.DataFrame()
 
+        # 2. Obtener Cursos
         param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
         res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
         cursos = res_cur.json()
         if 'exception' in cursos or not isinstance(cursos, list):
+            print("Error al obtener cursos de Moodle:", cursos)
             return pd.DataFrame()
+
+        print(f"Sincronizador: Descargados {len(cursos)} cursos. Iniciando procesamiento de calificaciones...")
 
         for curso in cursos:
             course_id = curso.get('id')
@@ -65,7 +86,7 @@ def obtener_datos_procesados():
                     nombre_carrera = cat.get('name', '').strip().upper()
                     break
 
-            # Consultar calificaciones por curso
+            # 3. Consultar calificaciones por curso
             param_calif = {
                 'wstoken': token_moodle,
                 'wsfunction': 'gradereport_user_get_grades_table',
@@ -110,23 +131,71 @@ def obtener_datos_procesados():
                         'nombre_alumno': user_fullname,
                         'calificacion_final': nota_final
                     })
-            except:
+            except Exception as e:
+                # Omitir silenciosamente errores de red individuales para no romper el ciclo
                 continue 
 
         return pd.DataFrame(lista_completa_alumnos)
     except Exception as e:
-        print(f"Error general: {e}")
+        print(f"Error crítico en obtener_datos_moodle_live: {e}")
         return pd.DataFrame()
+
+def sync_moodle_background():
+    """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON local."""
+    # Retardo inicial de 2 segundos para permitir el arranque de Dash
+    time.sleep(2)
+    while True:
+        try:
+            print("Hilo Sync: Conectando con Moodle en segundo plano...")
+            df = obtener_datos_moodle_live()
+            if not df.empty:
+                data_to_save = {
+                    "last_synced": pd.Timestamp.now().isoformat(),
+                    "records": df.to_dict(orient='records')
+                }
+                with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
+                    json.dump(data_to_save, f, ensure_ascii=False, indent=4)
+                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros en {JSON_FILE_PATH}.")
+                # Dormir 10 minutos si la consulta fue exitosa
+                time.sleep(600)
+            else:
+                print("Hilo Sync: Moodle retornó DataFrame vacío o error. Reintentando en 60 segundos...")
+                time.sleep(60)
+        except Exception as e:
+            print(f"Hilo Sync: Error crítico en sincronizador: {e}. Reintentando en 60 segundos...")
+            time.sleep(60)
+
+# Iniciar el hilo de sincronización daemon
+threading.Thread(target=sync_moodle_background, daemon=True).start()
+
+def obtener_datos_procesados():
+    """Lee del archivo JSON local y maneja caché de memoria basado en fecha de modificación (mtime)."""
+    global _cached_df, _cached_mtime
+    if not os.path.exists(JSON_FILE_PATH):
+        return pd.DataFrame()
+        
+    try:
+        mtime = os.path.getmtime(JSON_FILE_PATH)
+        # Recargar desde disco únicamente si el archivo fue modificado o si la caché de memoria está vacía
+        if mtime > _cached_mtime or _cached_df.empty:
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            records = data.get('records', [])
+            if records:
+                _cached_df = pd.DataFrame(records)
+                _cached_mtime = mtime
+                print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
+            else:
+                _cached_df = pd.DataFrame()
+        return _cached_df
+    except Exception as e:
+        print(f"Error al leer JSON local de caché: {e}")
+        return _cached_df
 
 # Integración con la API de OpenAI (gpt-4o-mini)
 @cache.memoize(timeout=3600)
 def obtener_diagnostico_ia(nombre_alumno, carrera, curso, grupo, calificacion_final):
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("CHATGPT_CONTRASEÑA")
-    if not api_key:
-        from dotenv import load_dotenv
-        load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
-        api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("CHATGPT_CONTRASEÑA")
-
     if not api_key:
         print("Advertencia: No se encontró la API Key de OpenAI.")
         return {
@@ -210,7 +279,7 @@ def obtener_diagnostico_ia(nombre_alumno, carrera, curso, grupo, calificacion_fi
             ]
         }
 
-# Estilos CSS 
+# Estilos CSS de Posicionamiento General
 SIDEBAR_STYLE = {
     'position': 'fixed',
     'top': '0',
@@ -292,9 +361,11 @@ def render_sidebar():
         ])
     ])
 
+# Layout principal
 app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
     dcc.Location(id='url', refresh=False),
-    dcc.Interval(id='trigger-inicial', interval=1000, max_intervals=1), # Retardo controlado de 1s
+    # Intervalo inicial que corre cada 3 segundos hasta desactivarse cuando cargan los datos
+    dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False), 
     render_sidebar(),
     html.Div(id='page-content', style=CONTENT_STYLE)
 ])
@@ -545,13 +616,14 @@ def cargar_diagnostico_ia(pathname):
     ])
 
 @app.callback(
-    [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options')],
+    [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options'),
+     Output('trigger-inicial', 'disabled')],
     [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
 )
 def manejar_filtros(n, carrera_sel, curso_sel):
     df = obtener_datos_procesados()
     if df is None or df.empty: 
-        return [], [], []
+        return [], [], [], False # Mantener interval activo si sigue vacío el JSON
 
     op_carreras = [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
     
@@ -564,7 +636,8 @@ def manejar_filtros(n, carrera_sel, curso_sel):
         df_f = df_f[df_f['curso'] == curso_sel]
     op_grupos = [{'label': g, 'value': g} for g in sorted(df_f['grupo'].unique())]
 
-    return op_carreras, op_cursos, op_grupos
+    # Deshabilitar el interval una vez cargados los datos para optimizar recursos
+    return op_carreras, op_cursos, op_grupos, True
 
 @app.callback(
     [Output('grafico-pastel-general', 'figure'), 
@@ -579,9 +652,10 @@ def manejar_filtros(n, carrera_sel, curso_sel):
      Output('metric-riesgo-pct', 'children')],
     [Input('carrera-dropdown', 'value'), 
      Input('curso-dropdown', 'value'), 
-     Input('grupo-dropdown', 'value')]
+     Input('grupo-dropdown', 'value'),
+     Input('carrera-dropdown', 'options')] # Gatillar recarga cuando carguen las opciones
 )
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel):
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
     df = obtener_datos_procesados()
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
