@@ -293,16 +293,16 @@ CONTENT_STYLE = {
 
 def render_sidebar():
     menu_items = [
-        ("🏠", "Inicio", "/"),
-        ("📚", "Curso", "#"),
-        ("👥", "Participantes", "#"),
-        ("📊", "Calificaciones", "#"),
-        ("📈", "Analítica", "/"),
-        ("📝", "Actividades", "#"),
-        ("📁", "Recursos", "#"),
-        ("💬", "Foros", "#"),
-        ("✉️", "Mensajes", "#"),
-        ("⚙️", "Configuración", "#")
+        ("Inicio", "/"),
+        ("Curso", "#"),
+        ("Participantes", "#"),
+        ("Calificaciones", "#"),
+        ("Analítica", "/"),
+        ("Actividades", "#"),
+        ("Recursos", "#"),
+        ("Foros", "#"),
+        ("Mensajes", "#"),
+        ("Configuración", "#")
     ]
     links = []
     for icon, name, href in menu_items:
@@ -331,7 +331,7 @@ def render_sidebar():
             )
     return html.Div(style=SIDEBAR_STYLE, children=[
         html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '12px', 'padding': '10px 5px'}, children=[
-            html.Span("🎓", style={'fontSize': '32px', 'color': '#00adb5'}),
+            html.Span(".", style={'fontSize': '32px', 'color': '#00adb5'}),
             html.Div(children=[
                 html.H2("Plataforma", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
                 html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#00adb5', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
@@ -351,15 +351,6 @@ def render_sidebar():
             html.P("Mapeo Asistido por IA", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#00adb5', 'fontWeight': '600'})
         ])
     ])
-
-# Layout principal
-app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
-    dcc.Location(id='url', refresh=False),
-    # Intervalo inicial que corre cada 3 segundos hasta desactivarse cuando cargan los datos
-    dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False),
-    render_sidebar(),
-    html.Div(id='page-content', style=CONTENT_STYLE)
-])
 
 def render_panel_principal():
     return html.Div(children=[
@@ -476,7 +467,7 @@ def render_panel_individual(nombre_alumno):
     )
     return html.Div(children=[
         dcc.Link("← Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
-        # Cabecera de identidad del estudiante (excluido perfil e iconos generales)
+        # identidad del estudiante 
         html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
             html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00adb5', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 173, 181, 0.3)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
@@ -509,7 +500,7 @@ def render_panel_individual(nombre_alumno):
         # Bloque de Insights de IA
         html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid rgba(0,173,181,0.2)', 'marginBottom': '30px'}, children=[
             html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
-                html.Span("✨", style={'fontSize': '22px'}),
+                html.Span("*", style={'fontSize': '22px'}),
                 html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': '#00adb5', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
             ]),
             # Contenedor dinámico de IA
@@ -517,14 +508,41 @@ def render_panel_individual(nombre_alumno):
         ])
     ])
 
-@app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
+# Layout principal: el panel de analítica vive en el layout raíz (estático) para que
+# los callbacks no destruyan dropdowns/gráficos al cambiar la ruta (None → /).
+app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
+    dcc.Location(id='url', refresh=False),
+    dcc.Interval(id='sync-interval', interval=5000, n_intervals=0),
+    dcc.Store(id='datos-cargados', data=False),
+    render_sidebar(),
+    html.Div(style=CONTENT_STYLE, children=[
+        html.Div(id='vista-principal', children=render_panel_principal()),
+        html.Div(id='vista-individual', style={'display': 'none'}),
+    ]),
+])
+
+@app.callback(
+    Output('vista-principal', 'style'),
+    Output('vista-individual', 'style'),
+    Output('vista-individual', 'children'),
+    Input('url', 'pathname'),
+)
 def controlar_rutas(pathname):
+    """Alterna visibilidad entre vistas sin recrear el panel principal (evita flickering)."""
     if not pathname or pathname == '/':
-        return render_panel_principal()
-    elif pathname.startswith('/alumno/'):
+        return {'display': 'block'}, {'display': 'none'}, dash.no_update
+    if pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return render_panel_individual(nombre_alumno)
-    return html.Div("404 - Ruta no válida")
+        return (
+            {'display': 'none'},
+            {'display': 'block'},
+            render_panel_individual(nombre_alumno),
+        )
+    return (
+        {'display': 'none'},
+        {'display': 'block'},
+        html.Div("404 - Ruta no válida", style={'color': '#ff414d', 'padding': '40px'}),
+    )
 
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
@@ -588,15 +606,20 @@ def cargar_diagnostico_ia(pathname):
     ])
 
 @app.callback(
-    [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options'), Output('trigger-inicial', 'disabled')],
-    [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
+    Output('carrera-dropdown', 'options'),
+    Output('curso-dropdown', 'options'),
+    Output('grupo-dropdown', 'options'),
+    Output('datos-cargados', 'data'),
+    Input('sync-interval', 'n_intervals'),
+    Input('carrera-dropdown', 'value'),
+    Input('curso-dropdown', 'value'),
 )
-def manejar_filtros(n, carrera_sel, curso_sel):
+def manejar_filtros(_n, carrera_sel, curso_sel):
     df = obtener_datos_procesados()
     if df is None or df.empty:
-        return [], [], [], False  # Mantener interval activo si sigue vacío el JSON
+        return dash.no_update, dash.no_update, dash.no_update, False
+
     op_carreras = [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
-    
     df_f = df.copy()
     if carrera_sel:
         df_f = df_f[df_f['carrera'] == carrera_sel]
@@ -604,27 +627,35 @@ def manejar_filtros(n, carrera_sel, curso_sel):
     if curso_sel:
         df_f = df_f[df_f['curso'] == curso_sel]
     op_grupos = [{'label': g, 'value': g} for g in sorted(df_f['grupo'].unique())]
-    
-    # Deshabilitar el interval una vez cargados los datos para optimizar recursos
     return op_carreras, op_cursos, op_grupos, True
 
+
 @app.callback(
-    [Output('grafico-pastel-general', 'figure'),
-     Output('grafico-barras-general', 'figure'),
-     Output('tabla-alumnos-container', 'children'),
-     Output('mensaje-estado-container', 'children'),
-     Output('metric-total', 'children'),
-     Output('metric-promedio', 'children'),
-     Output('metric-aprobados', 'children'),
-     Output('metric-aprobados-pct', 'children'),
-     Output('metric-riesgo', 'children'),
-     Output('metric-riesgo-pct', 'children')],
-    [Input('carrera-dropdown', 'value'),
-     Input('curso-dropdown', 'value'),
-     Input('grupo-dropdown', 'value'),
-     Input('carrera-dropdown', 'options')]  # Gatillar recarga cuando carguen las opciones
+    Output('sync-interval', 'disabled'),
+    Input('datos-cargados', 'data'),
 )
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
+def controlar_polling(datos_cargados):
+    return bool(datos_cargados)
+
+
+@app.callback(
+    Output('grafico-pastel-general', 'figure'),
+    Output('grafico-barras-general', 'figure'),
+    Output('tabla-alumnos-container', 'children'),
+    Output('mensaje-estado-container', 'children'),
+    Output('metric-total', 'children'),
+    Output('metric-promedio', 'children'),
+    Output('metric-aprobados', 'children'),
+    Output('metric-aprobados-pct', 'children'),
+    Output('metric-riesgo', 'children'),
+    Output('metric-riesgo-pct', 'children'),
+    Input('carrera-dropdown', 'value'),
+    Input('curso-dropdown', 'value'),
+    Input('grupo-dropdown', 'value'),
+    Input('datos-cargados', 'data'),
+    State('sync-interval', 'n_intervals'),
+)
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
     df = obtener_datos_procesados()
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
