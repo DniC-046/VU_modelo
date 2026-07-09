@@ -639,22 +639,29 @@ def controlar_polling(datos_cargados):
 
 
 @app.callback(
-    Output('grafico-pastel-general', 'figure'),
-    Output('grafico-barras-general', 'figure'),
-    Output('tabla-alumnos-container', 'children'),
-    Output('mensaje-estado-container', 'children'),
-    Output('metric-total', 'children'),
-    Output('metric-promedio', 'children'),
-    Output('metric-aprobados', 'children'),
-    Output('metric-aprobados-pct', 'children'),
-    Output('metric-riesgo', 'children'),
-    Output('metric-riesgo-pct', 'children'),
-    Input('carrera-dropdown', 'value'),
-    Input('curso-dropdown', 'value'),
-    Input('grupo-dropdown', 'value'),
-    Input('datos-cargados', 'data'),
-    State('sync-interval', 'n_intervals')
+output=[
+        Output('grafico-pastel-general', 'figure'),
+        Output('grafico-barras-general', 'figure'),
+        Output('tabla-alumnos-container', 'children'),
+        Output('mensaje-estado-container', 'children'),
+        Output('metric-total', 'children'),
+        Output('metric-promedio', 'children'),
+        Output('metric-aprobados', 'children'),
+        Output('metric-aprobados-pct', 'children'),
+        Output('metric-riesgo', 'children'),
+        Output('metric-riesgo-pct', 'children')
+    ],
+    inputs=[
+        Input('carrera-dropdown', 'value'),
+        Input('curso-dropdown', 'value'),
+        Input('grupo-dropdown', 'value'),
+        Input('datos-cargados', 'data')
+    ],
+    state=[
+        State('sync-interval', 'n_intervals')
+    ]
 )
+
 def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
     df = obtener_datos_procesados()
     if df is None or df.empty:
