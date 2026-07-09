@@ -639,7 +639,7 @@ def controlar_polling(datos_cargados):
 
 
 @app.callback(
-    [Output('grafico-pastel-general', 'figure'),
+    Output('grafico-pastel-general', 'figure'),
     Output('grafico-barras-general', 'figure'),
     Output('tabla-alumnos-container', 'children'),
     Output('mensaje-estado-container', 'children'),
@@ -648,12 +648,12 @@ def controlar_polling(datos_cargados):
     Output('metric-aprobados', 'children'),
     Output('metric-aprobados-pct', 'children'),
     Output('metric-riesgo', 'children'),
-    Output('metric-riesgo-pct', 'children')],
-    [Input('carrera-dropdown', 'value'),
+    Output('metric-riesgo-pct', 'children'),
+    Input('carrera-dropdown', 'value'),
     Input('curso-dropdown', 'value'),
     Input('grupo-dropdown', 'value'),
-    Input('datos-cargados', 'data')],
-    [State('sync-interval', 'n_intervals')],
+    Input('datos-cargados', 'data'),
+    State('sync-interval', 'n_intervals')
 )
 def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
     df = obtener_datos_procesados()
