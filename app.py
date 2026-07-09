@@ -207,17 +207,13 @@ def sync_moodle_background():
             print("Hilo Sync: Conectando con Moodle en segundo plano...")
             df = obtener_datos_moodle_live()
             if not df.empty:
-                # Guardar a JSON de forma atómica para compatibilidad y depuración
                 data_to_save = {
                     "last_synced": pd.Timestamp.now().isoformat(),
                     "records": df.to_dict(orient='records')
                 }
-                temp_json = JSON_FILE_PATH + ".tmp"
-                with open(temp_json, 'w', encoding='utf-8') as f:
+                with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, ensure_ascii=False, indent=4)
-                os.replace(temp_json, JSON_FILE_PATH)
-
-                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros.")
+                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros en {JSON_FILE_PATH}.")
                 time.sleep(600)
             else:
                 print("Hilo Sync: Moodle retornó DataFrame vacío. Reintentando en 60 segundos...")
@@ -230,9 +226,8 @@ def sync_moodle_background():
 threading.Thread(target=sync_moodle_background, daemon=True).start()
 
 def obtener_datos_procesados():
-    """Lee exclusivamente del archivo JSON local y maneja caché de memoria basado en mtime."""
+    """Lee del archivo JSON local y maneja caché de memoria basado en fecha de modificación (mtime)."""
     global _cached_df, _cached_mtime
-    
     if not os.path.exists(JSON_FILE_PATH):
         return pd.DataFrame()
         
@@ -242,12 +237,15 @@ def obtener_datos_procesados():
             with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             records = data.get('records', [])
-            _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
-            _cached_mtime = mtime
-            print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde JSON de forma instantánea.")
+            if records:
+                _cached_df = pd.DataFrame(records)
+                _cached_mtime = mtime
+                print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
+            else:
+                _cached_df = pd.DataFrame()
         return _cached_df
     except Exception as e:
-        print(f"Error al leer caché JSON: {e}")
+        print(f"Error al leer JSON local de caché: {e}")
         return _cached_df
 
 # Integración con la API de OpenAI (gpt-4o-mini)
@@ -344,12 +342,12 @@ SIDEBAR_STYLE = {
     'left': '0',
     'bottom': '0',
     'width': '260px',
-    'padding': '40px 24px',
+    'padding': '30px 20px',
     'backgroundColor': '#1e1e1e',
     'borderRight': '1px solid #2d2d2d',
     'display': 'flex',
     'flexDirection': 'column',
-    'gap': '35px',
+    'gap': '20px',
     'zIndex': '1000',
 }
 
@@ -383,7 +381,7 @@ def render_sidebar():
                 dcc.Link(
                     html.Div(className='sidebar-link-active', children=[
                         html.Span(name, style={'fontSize': '15px'})
-                    ], style={'padding': '14px 20px', 'marginBottom': '12px'}),
+                    ]),
                     href=href,
                     style={'textDecoration': 'none'}
                 )
@@ -392,7 +390,7 @@ def render_sidebar():
             links.append(
                 html.Div(className='sidebar-link', children=[
                     html.Span(name, style={'fontSize': '15px'})
-                ], style={'padding': '14px 20px', 'marginBottom': '12px'})
+                ])
             )
 
     return html.Div(style=SIDEBAR_STYLE, children=[
@@ -401,7 +399,7 @@ def render_sidebar():
             html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#00adb5', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
         ]),
         html.Hr(style={'borderColor': '#2d2d2d', 'margin': '15px 0'}),
-        html.Div(links, style={'display': 'flex', 'flexDirection': 'column', 'gap': '4px'})
+        html.Div(links, style={'display': 'flex', 'flexDirection': 'column'})
     ])
 
 # Layout principal
@@ -471,31 +469,19 @@ def render_panel_principal():
             ])
         ]),
 
-        # Gráficos envueltos en Loading
+        # Gráficos
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                dcc.Loading(
-                    type="circle",
-                    color="#00adb5",
-                    children=dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
-                )
+                dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
             ]),
             html.Div(style={'width': '60%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                dcc.Loading(
-                    type="circle",
-                    color="#00adb5",
-                    children=dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
-                )
+                dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
             ])
         ]),
 
         html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
             html.H3("Rendimiento Nominal de Estudiantes Matriculados", style={'color': '#00adb5', 'marginTop': '0', 'marginBottom': '20px', 'fontSize': '18px', 'fontWeight': '600'}),
-            dcc.Loading(
-                type="circle",
-                color="#00adb5",
-                children=html.Div(id='tabla-alumnos-container')
-            )
+            html.Div(id='tabla-alumnos-container')
         ])
     ])
 
@@ -717,37 +703,13 @@ def manejar_filtros(n, carrera_sel, curso_sel):
      Output('metric-riesgo-pct', 'children')],
     [Input('carrera-dropdown', 'value'), 
      Input('curso-dropdown', 'value'), 
-     Input('grupo-dropdown', 'value'),
-     Input('carrera-dropdown', 'options')]
+     Input('grupo-dropdown', 'value')],
+    [State('carrera-dropdown', 'options')]
 )
 def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
     df = obtener_datos_procesados()
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
-
-    # Evitar procesamiento y congelamiento de pantalla con datos globales en carga inicial
-    if not carrera_sel or not curso_sel:
-        fig_empty = {
-            'data': [],
-            'layout': {
-                'xaxis': {'visible': False},
-                'yaxis': {'visible': False},
-                'paper_bgcolor': 'rgba(0,0,0,0)',
-                'plot_bgcolor': 'rgba(0,0,0,0)',
-                'annotations': [{
-                    'text': 'Esperando selección de Carrera y Curso Moodle...',
-                    'xref': 'paper',
-                    'yref': 'paper',
-                    'showarrow': False,
-                    'font': {'size': 14, 'color': '#888888', 'family': 'Outfit, sans-serif'}
-                }]
-            }
-        }
-        mensaje_inicial = html.Div(
-            "Seleccione una Carrera y un Curso Moodle en los selectores superiores para comenzar el análisis.",
-            style={'color': '#888888', 'fontSize': '15px', 'fontWeight': '500', 'padding': '25px', 'textAlign': 'center'}
-        )
-        return fig_empty, fig_empty, mensaje_inicial, "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
     df_render = df.copy()
     if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
@@ -755,23 +717,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
     if grupo_sel: df_render = df_render[df_render['grupo'] == grupo_sel]
 
     if df_render.empty:
-        fig_empty = {
-            'data': [],
-            'layout': {
-                'xaxis': {'visible': False},
-                'yaxis': {'visible': False},
-                'paper_bgcolor': 'rgba(0,0,0,0)',
-                'plot_bgcolor': 'rgba(0,0,0,0)',
-                'annotations': [{
-                    'text': 'No se encontraron alumnos para esta combinación de filtros.',
-                    'xref': 'paper',
-                    'yref': 'paper',
-                    'showarrow': False,
-                    'font': {'size': 14, 'color': '#ff414d', 'family': 'Outfit, sans-serif'}
-                }]
-            }
-        }
-        return fig_empty, fig_empty, html.Div("Por favor seleccione un filtro válido en la barra superior.", style={'color': '#ff414d', 'textAlign': 'center', 'padding': '20px'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
+        return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
     # Procesar segmentación avanzada para el curso Propedéutico DTIC en el banner de estado
     mensaje_segmentacion = ""
