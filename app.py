@@ -199,21 +199,38 @@ def obtener_datos_moodle_live():
         print(f"Error crítico en obtener_datos_moodle_live: {e}")
         return pd.DataFrame()
 
+PKL_FILE_PATH = 'data_moodle.pkl'
+
 def sync_moodle_background():
-    """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON local."""
+    """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON/Pickle local."""
     time.sleep(2)
     while True:
         try:
             print("Hilo Sync: Conectando con Moodle en segundo plano...")
             df = obtener_datos_moodle_live()
             if not df.empty:
+                # 1. Guardar a Pickle de forma atómica para lecturas ultrarrápidas
+                temp_pkl = PKL_FILE_PATH + ".tmp"
+                df.to_pickle(temp_pkl)
+                os.replace(temp_pkl, PKL_FILE_PATH)
+
+                # 2. Guardar a JSON de forma atómica para compatibilidad y depuración
                 data_to_save = {
                     "last_synced": pd.Timestamp.now().isoformat(),
                     "records": df.to_dict(orient='records')
                 }
-                with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
+                temp_json = JSON_FILE_PATH + ".tmp"
+                with open(temp_json, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, ensure_ascii=False, indent=4)
-                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros en {JSON_FILE_PATH}.")
+                os.replace(temp_json, JSON_FILE_PATH)
+
+                # 3. Invalidar caché en Flask-Caching para forzar recarga en el siguiente request
+                try:
+                    cache.delete('datos_procesados_df')
+                except Exception as ce:
+                    print(f"Advertencia al invalidar caché: {ce}")
+
+                print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros.")
                 time.sleep(600)
             else:
                 print("Hilo Sync: Moodle retornó DataFrame vacío. Reintentando en 60 segundos...")
@@ -225,27 +242,40 @@ def sync_moodle_background():
 # Iniciar el hilo de sincronización daemon
 threading.Thread(target=sync_moodle_background, daemon=True).start()
 
+@cache.cached(timeout=60, key_prefix='datos_procesados_df')
 def obtener_datos_procesados():
-    """Lee del archivo JSON local y maneja caché de memoria basado en fecha de modificación (mtime)."""
+    """Lee del archivo Pickle local (o JSON como fallback) y maneja caché de memoria basado en mtime."""
     global _cached_df, _cached_mtime
-    if not os.path.exists(JSON_FILE_PATH):
+    
+    target_path = PKL_FILE_PATH if os.path.exists(PKL_FILE_PATH) else JSON_FILE_PATH
+    if not os.path.exists(target_path):
         return pd.DataFrame()
         
     try:
-        mtime = os.path.getmtime(JSON_FILE_PATH)
+        mtime = os.path.getmtime(target_path)
         if mtime > _cached_mtime or _cached_df.empty:
-            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            records = data.get('records', [])
-            if records:
-                _cached_df = pd.DataFrame(records)
-                _cached_mtime = mtime
-                print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
+            if target_path == PKL_FILE_PATH:
+                _cached_df = pd.read_pickle(PKL_FILE_PATH)
+                print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde Pickle de forma instantánea.")
             else:
-                _cached_df = pd.DataFrame()
+                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                records = data.get('records', [])
+                _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
+                print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde JSON.")
+            _cached_mtime = mtime
         return _cached_df
     except Exception as e:
-        print(f"Error al leer JSON local de caché: {e}")
+        print(f"Error al leer caché ({target_path}): {e}")
+        try:
+            if target_path == PKL_FILE_PATH and os.path.exists(JSON_FILE_PATH):
+                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                records = data.get('records', [])
+                _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
+                return _cached_df
+        except:
+            pass
         return _cached_df
 
 # Integración con la API de OpenAI (gpt-4o-mini)
@@ -469,19 +499,31 @@ def render_panel_principal():
             ])
         ]),
 
-        # Gráficos
+        # Gráficos envueltos en Loading
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
+                dcc.Loading(
+                    type="circle",
+                    color="#00adb5",
+                    children=dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
+                )
             ]),
             html.Div(style={'width': '60%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
+                dcc.Loading(
+                    type="circle",
+                    color="#00adb5",
+                    children=dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
+                )
             ])
         ]),
 
         html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
             html.H3("Rendimiento Nominal de Estudiantes Matriculados", style={'color': '#00adb5', 'marginTop': '0', 'marginBottom': '20px', 'fontSize': '18px', 'fontWeight': '600'}),
-            html.Div(id='tabla-alumnos-container')
+            dcc.Loading(
+                type="circle",
+                color="#00adb5",
+                children=html.Div(id='tabla-alumnos-container')
+            )
         ])
     ])
 
@@ -711,13 +753,53 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
+    # Evitar procesamiento y congelamiento de pantalla con datos globales en carga inicial
+    if not carrera_sel or not curso_sel:
+        fig_empty = {
+            'data': [],
+            'layout': {
+                'xaxis': {'visible': False},
+                'yaxis': {'visible': False},
+                'paper_bgcolor': 'rgba(0,0,0,0)',
+                'plot_bgcolor': 'rgba(0,0,0,0)',
+                'annotations': [{
+                    'text': 'Esperando selección de Carrera y Curso Moodle...',
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'showarrow': False,
+                    'font': {'size': 14, 'color': '#888888', 'family': 'Outfit, sans-serif'}
+                }]
+            }
+        }
+        mensaje_inicial = html.Div(
+            "Seleccione una Carrera y un Curso Moodle en los selectores superiores para comenzar el análisis.",
+            style={'color': '#888888', 'fontSize': '15px', 'fontWeight': '500', 'padding': '25px', 'textAlign': 'center'}
+        )
+        return fig_empty, fig_empty, mensaje_inicial, "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
+
     df_render = df.copy()
     if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
     if curso_sel: df_render = df_render[df_render['curso'] == curso_sel]
     if grupo_sel: df_render = df_render[df_render['grupo'] == grupo_sel]
 
     if df_render.empty:
-        return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
+        fig_empty = {
+            'data': [],
+            'layout': {
+                'xaxis': {'visible': False},
+                'yaxis': {'visible': False},
+                'paper_bgcolor': 'rgba(0,0,0,0)',
+                'plot_bgcolor': 'rgba(0,0,0,0)',
+                'annotations': [{
+                    'text': 'No se encontraron alumnos para esta combinación de filtros.',
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'showarrow': False,
+                    'font': {'size': 14, 'color': '#ff414d', 'family': 'Outfit, sans-serif'}
+                }]
+            }
+        }
+        return fig_empty, fig_empty, html.Div("Por favor seleccione un filtro válido en la barra superior.", style={'color': '#ff414d', 'textAlign': 'center', 'padding': '20px'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
     # Procesar segmentación avanzada para el curso Propedéutico DTIC en el banner de estado
     mensaje_segmentacion = ""
