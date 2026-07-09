@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Custom Scrollbar for modern look */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #121212;
+}
+::-webkit-scrollbar-thumb {
+    background: #2d2d2d;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #00adb5;
+}
+
+/* Sidebar Menu Items */
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    border-radius: 10px;
+    color: #888888;
+    font-weight: 500;
+    margin-bottom: 12px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.sidebar-link:hover {
+    color: #00adb5;
+    background-color: #1a1a1a;
+    transform: translateX(4px);
+}
+
+.sidebar-link-active {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    border-radius: 10px;
+    color: #ffffff;
+    background-color: #00adb5;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 173, 181, 0.25);
+    transition: all 0.25s ease;
+}
+
+.sidebar-link-active:hover {
+    box-shadow: 0 6px 16px rgba(0, 173, 181, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Cards Hover effects */
+.metric-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: #3d3d3d !important;
+}
+
+/* AI Insights Container Neon Glow */
+.ai-insights-card {
+    background: linear-gradient(135deg, #1e1e1e 0%, #111e22 100%);
+    border: 1px solid rgba(0, 173, 181, 0.25) !important;
+    box-shadow: 0 8px 32px rgba(0, 173, 181, 0.05);
+    transition: all 0.3s ease;
+}
+.ai-insights-card:hover {
+    border-color: rgba(0, 173, 181, 0.6) !important;
+    box-shadow: 0 8px 32px rgba(0, 173, 181, 0.15);
+}
+
+/* Badges for Risk Levels */
+.badge-risk-bajo {
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.badge-risk-medio {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.badge-risk-alto {
+    background-color: rgba(255, 65, 77, 0.15);
+    color: #ff414d;
+    border: 1px solid rgba(255, 65, 77, 0.3);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-block;
+}
+
+/* Tables and nominal lists */
+.student-row {
+    transition: all 0.2s ease;
+}
+.student-row:hover {
+    background-color: #1d2b2c !important;
+    padding-left: 15px !important;
+}
+
+.student-link {
+    color: #00adb5;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+.student-link:hover {
+    color: #00fff2;
+    text-decoration: underline;
+}
+
+/* Custom Dropdown Overrides */
+.Select-control {
+    background-color: #1e1e1e !important;
+    border: 1px solid #2d2d2d !important;
+    color: #ffffff !important;
+}
+.Select-menu-outer {
+    background-color: #1e1e1e !important;
+    border: 1px solid #2d2d2d !important;
+}
+.Select-value-label {
+    color: #ffffff !important;
+}
+.virtualized-select-option {
+    color: #ffffff !important;
+    background-color: #1e1e1e !important;
+}
+.virtualized-select-option:hover {
+    background-color: #2d2d2d !important;
+    color: #00adb5 !important;
+}

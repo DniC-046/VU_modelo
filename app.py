@@ -342,12 +342,12 @@ SIDEBAR_STYLE = {
     'left': '0',
     'bottom': '0',
     'width': '260px',
-    'padding': '30px 20px',
+    'padding': '40px 24px',
     'backgroundColor': '#1e1e1e',
     'borderRight': '1px solid #2d2d2d',
     'display': 'flex',
     'flexDirection': 'column',
-    'gap': '20px',
+    'gap': '35px',
     'zIndex': '1000',
 }
 
@@ -381,7 +381,7 @@ def render_sidebar():
                 dcc.Link(
                     html.Div(className='sidebar-link-active', children=[
                         html.Span(name, style={'fontSize': '15px'})
-                    ]),
+                    ], style={'padding': '14px 20px', 'marginBottom': '12px'}),
                     href=href,
                     style={'textDecoration': 'none'}
                 )
@@ -390,7 +390,7 @@ def render_sidebar():
             links.append(
                 html.Div(className='sidebar-link', children=[
                     html.Span(name, style={'fontSize': '15px'})
-                ])
+                ], style={'padding': '14px 20px', 'marginBottom': '12px'})
             )
 
     return html.Div(style=SIDEBAR_STYLE, children=[
@@ -399,7 +399,7 @@ def render_sidebar():
             html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#00adb5', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
         ]),
         html.Hr(style={'borderColor': '#2d2d2d', 'margin': '15px 0'}),
-        html.Div(links, style={'display': 'flex', 'flexDirection': 'column'})
+        html.Div(links, style={'display': 'flex', 'flexDirection': 'column', 'gap': '4px'})
     ])
 
 # Layout principal
