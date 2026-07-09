@@ -199,22 +199,15 @@ def obtener_datos_moodle_live():
         print(f"Error crítico en obtener_datos_moodle_live: {e}")
         return pd.DataFrame()
 
-PKL_FILE_PATH = 'data_moodle.pkl'
-
 def sync_moodle_background():
-    """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON/Pickle local."""
+    """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON local."""
     time.sleep(2)
     while True:
         try:
             print("Hilo Sync: Conectando con Moodle en segundo plano...")
             df = obtener_datos_moodle_live()
             if not df.empty:
-                # 1. Guardar a Pickle de forma atómica para lecturas ultrarrápidas
-                temp_pkl = PKL_FILE_PATH + ".tmp"
-                df.to_pickle(temp_pkl)
-                os.replace(temp_pkl, PKL_FILE_PATH)
-
-                # 2. Guardar a JSON de forma atómica para compatibilidad y depuración
+                # Guardar a JSON de forma atómica para compatibilidad y depuración
                 data_to_save = {
                     "last_synced": pd.Timestamp.now().isoformat(),
                     "records": df.to_dict(orient='records')
@@ -223,12 +216,6 @@ def sync_moodle_background():
                 with open(temp_json, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, ensure_ascii=False, indent=4)
                 os.replace(temp_json, JSON_FILE_PATH)
-
-                # 3. Invalidar caché en Flask-Caching para forzar recarga en el siguiente request
-                try:
-                    cache.delete('datos_procesados_df')
-                except Exception as ce:
-                    print(f"Advertencia al invalidar caché: {ce}")
 
                 print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros.")
                 time.sleep(600)
@@ -242,40 +229,25 @@ def sync_moodle_background():
 # Iniciar el hilo de sincronización daemon
 threading.Thread(target=sync_moodle_background, daemon=True).start()
 
-@cache.cached(timeout=60, key_prefix='datos_procesados_df')
 def obtener_datos_procesados():
-    """Lee del archivo Pickle local (o JSON como fallback) y maneja caché de memoria basado en mtime."""
+    """Lee exclusivamente del archivo JSON local y maneja caché de memoria basado en mtime."""
     global _cached_df, _cached_mtime
     
-    target_path = PKL_FILE_PATH if os.path.exists(PKL_FILE_PATH) else JSON_FILE_PATH
-    if not os.path.exists(target_path):
+    if not os.path.exists(JSON_FILE_PATH):
         return pd.DataFrame()
         
     try:
-        mtime = os.path.getmtime(target_path)
+        mtime = os.path.getmtime(JSON_FILE_PATH)
         if mtime > _cached_mtime or _cached_df.empty:
-            if target_path == PKL_FILE_PATH:
-                _cached_df = pd.read_pickle(PKL_FILE_PATH)
-                print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde Pickle de forma instantánea.")
-            else:
-                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                records = data.get('records', [])
-                _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
-                print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde JSON.")
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            records = data.get('records', [])
+            _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
             _cached_mtime = mtime
+            print(f"Caché de Memoria: Recargados {len(_cached_df)} registros desde JSON de forma instantánea.")
         return _cached_df
     except Exception as e:
-        print(f"Error al leer caché ({target_path}): {e}")
-        try:
-            if target_path == PKL_FILE_PATH and os.path.exists(JSON_FILE_PATH):
-                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                records = data.get('records', [])
-                _cached_df = pd.DataFrame(records) if records else pd.DataFrame()
-                return _cached_df
-        except:
-            pass
+        print(f"Error al leer caché JSON: {e}")
         return _cached_df
 
 # Integración con la API de OpenAI (gpt-4o-mini)
