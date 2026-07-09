@@ -13,7 +13,7 @@ import dotenv
 import threading
 import time
 
-#eee Cargar variables de entorno de forma segura al inicio de la aplicación (Local y Producción)
+# Cargar variables de entorno de forma segura al inicio de la aplicación (Local y Producción)
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     dotenv.load_dotenv(dotenv_path)
@@ -32,7 +32,7 @@ app = dash.Dash(
 server = app.server
 application = server
 
-# Configuración del caché local
+# Configuración del caché local corregida
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'SimpleCache',
     'CACHE_DEFAULT_TIMEOUT': 300
@@ -51,46 +51,40 @@ def obtener_datos_moodle_live():
     if not token_moodle:
         print("Error: Falta la variable de entorno MOODLE_TOKEN.")
         return pd.DataFrame()
+    
     lista_completa_alumnos = []
     try:
         # 1. Obtener Categorías (Carreras)
-        param_cat = {
-            'wstoken': token_moodle, 
-            'wsfunction': 'core_course_get_categories',
-            'moodlewsrestformat': 'json'
-        }
+        param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
         res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=15)
         categorias = res_cat.json()
         if 'exception' in categorias or not isinstance(categorias, list):
             print("Error al obtener categorías de Moodle:", categorias)
             return pd.DataFrame()
-
+            
         # 2. Obtener Cursos
-        param_cur = {
-            'wstoken': token_moodle, 
-            'wsfunction': 'core_course_get_courses',
-            'moodlewsrestformat': 'json'
-        }
+        param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
         res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
         cursos = res_cur.json()
         if 'exception' in cursos or not isinstance(cursos, list):
             print("Error al obtener cursos de Moodle:", cursos)
             return pd.DataFrame()
-
+            
         print(f"Sincronizador: Descargados {len(cursos)} cursos. Iniciando procesamiento de calificaciones...")
-
+        
         for curso in cursos:
             course_id = curso.get('id')
             nombre_curso = curso.get('fullname', "").strip()
             id_categoria = curso.get('categoryid')
             if course_id == 1 or not nombre_curso:
                 continue
+                
             nombre_carrera = "GENERAL/PROPEDÉUTICO"
             for cat in categorias:
                 if cat.get('id') == id_categoria:
                     nombre_carrera = cat.get('name', "").strip().upper()
                     break
-
+                    
             # 3. Consultar calificaciones por curso
             param_calif = {
                 'wstoken': token_moodle,
@@ -103,10 +97,12 @@ def obtener_datos_moodle_live():
                 data_curso = res_calif.json()
                 if not isinstance(data_curso, dict) or 'tables' not in data_curso:
                     continue
+                    
                 for tabla_usuario in data_curso.get('tables', []):
                     user_fullname = tabla_usuario.get('userfullname', "").strip().upper()
                     if not user_fullname:
                         continue
+                        
                     nota_final = 0.0
                     for item in tabla_usuario.get('tabledata', []):
                         if not isinstance(item, dict): 
@@ -119,12 +115,13 @@ def obtener_datos_moodle_live():
                                 nota_final = float(grade_data.get('text', '0.0'))
                             except:
                                 nota_final = 0.0
+                                
                     grupo_detectado = "SIN GRUPO ASIGNADO"
                     if "-" in nombre_curso:
                         grupo_detectado = nombre_curso.split("-")[-1].strip().upper()
                     elif "GRUPO" in nombre_curso.upper():
                         grupo_detectado = nombre_curso.upper().split("GRUPO")[-1].strip()
-                    
+                        
                     lista_completa_alumnos.append({
                         'carrera': nombre_carrera,
                         'curso': nombre_curso.upper(),
@@ -132,8 +129,7 @@ def obtener_datos_moodle_live():
                         'nombre_alumno': user_fullname,
                         'calificacion_final': nota_final
                     })
-            except Exception as e:
-                # Omitir silenciosamente errores de red individuales para no romper el ciclo
+            except Exception:
                 continue
         return pd.DataFrame(lista_completa_alumnos)
     except Exception as e:
@@ -142,7 +138,6 @@ def obtener_datos_moodle_live():
 
 def sync_moodle_background():
     """Hilo secundario daemon para sincronizar con Moodle y guardar a JSON local."""
-    # Retardo inicial de 2 segundos para permitir el arranque de Dash
     time.sleep(2)
     while True:
         try:
@@ -156,7 +151,6 @@ def sync_moodle_background():
                 with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, ensure_ascii=False, indent=4)
                 print(f"Hilo Sync: Sincronización exitosa. Guardados {len(df)} registros en {JSON_FILE_PATH}.")
-                # Dormir 10 minutos si la consulta fue exitosa
                 time.sleep(600)
             else:
                 print("Hilo Sync: Moodle retornó DataFrame vacío o error. Reintentando en 60 segundos...")
@@ -168,30 +162,29 @@ def sync_moodle_background():
 # Iniciar el hilo de sincronización daemon
 threading.Thread(target=sync_moodle_background, daemon=True).start()
 
-def obtener_datos_procesados():
+def obtener_datos_processed():
     """Lee del archivo JSON local y maneja caché de memoria basado en fecha de modificación (mtime)."""
     global _cached_df, _cached_mtime
     if not os.path.exists(JSON_FILE_PATH):
         return pd.DataFrame()
     try:
         mtime = os.path.getmtime(JSON_FILE_PATH)
-        # Recargar desde disco únicamente si el archivo fue modificado o si la caché de memoria está vacía
         if mtime > _cached_mtime or _cached_df.empty:
             with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            records = data.get('records', [])
-            if records:
-                _cached_df = pd.DataFrame(records)
-                _cached_mtime = mtime
-                print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
-            else:
-                _cached_df = pd.DataFrame()
+                records = data.get('records', [])
+                if records:
+                    _cached_df = pd.DataFrame(records)
+                    _cached_mtime = mtime
+                    print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
+                else:
+                    _cached_df = pd.DataFrame()
         return _cached_df
     except Exception as e:
         print(f"Error al leer JSON local de caché: {e}")
         return _cached_df
 
-# Integración con la API de OpenAI (gpt-4o-mini)
+# Integración con la API de OpenAI
 @cache.memoize(timeout=3600)
 def obtener_diagnostico_ia(nombre_alumno, carrera, curso, grupo, calificacion_final):
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("CHATGPT_CONTRASEÑA")
@@ -216,8 +209,7 @@ def obtener_diagnostico_ia(nombre_alumno, carrera, curso, grupo, calificacion_fi
         - Calificación Acumulada Actual: {calificacion_final:.1f} / 10.0
         Reglas de la escala de calificaciones UTTEC:
         - Escala de 0 a 10.
-        - Calificación aprobatoria mínima: 6.0.
-        - Menos de 6.0 representa reprobación inmediata.
+        - Calificación aprobatoria mínima: 6.0. Menos de 6.0 representa reprobación inmediata.
         - Notas entre 6.0 y 7.5 representan un desempeño regular con mediano riesgo de deserción o rezago.
         - Notas entre 7.6 y 10.0 representan bajo riesgo y buen rendimiento.
         Debes retornar estrictamente un objeto JSON con la siguiente estructura (sin formato Markdown adicional ni comentarios, solo el JSON):
@@ -283,7 +275,6 @@ SIDEBAR_STYLE = {
     'gap': '20px',
     'zIndex': '1000',
 }
-
 CONTENT_STYLE = {
     'marginLeft': '280px',
     'padding': '40px',
@@ -293,16 +284,16 @@ CONTENT_STYLE = {
 
 def render_sidebar():
     menu_items = [
-        ("Inicio", "/"),
-        ("Curso", "#"),
-        ("Participantes", "#"),
-        ("Calificaciones", "#"),
-        ("Analítica", "/"),
-        ("Actividades", "#"),
-        ("Recursos", "#"),
-        ("Foros", "#"),
-        ("Mensajes", "#"),
-        ("Configuración", "#")
+        ("🏠", "Inicio", "/"),
+        ("📚", "Curso", "#"),
+        ("👥", "Participantes", "#"),
+        ("📊", "Calificaciones", "#"),
+        ("📈", "Analítica", "/"),
+        ("📝", "Actividades", "#"),
+        ("📂", "Recursos", "#"),
+        ("💬", "Foros", "#"),
+        ("✉️", "Mensajes", "#"),
+        ("⚙️", "Configuración", "#")
     ]
     links = []
     for icon, name, href in menu_items:
@@ -323,7 +314,7 @@ def render_sidebar():
                 dcc.Link(
                     html.Div(className='sidebar-link', children=[
                         html.Span(icon, style={'marginRight': '15px', 'fontSize': '18px', 'opacity': '0.7'}),
-                        html.Span(name, style={'fontSize': '15px'})
+                        html.Span(name, style={'fontSize': '15px', 'color': '#aaaaaa'})
                     ]),
                     href=href,
                     style={'textDecoration': 'none'}
@@ -331,14 +322,14 @@ def render_sidebar():
             )
     return html.Div(style=SIDEBAR_STYLE, children=[
         html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '12px', 'padding': '10px 5px'}, children=[
-            html.Span(".", style={'fontSize': '32px', 'color': '#00adb5'}),
+            html.Span("🎓", style={'fontSize': '32px', 'color': '#00adb5'}),
             html.Div(children=[
                 html.H2("Plataforma", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
                 html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#00adb5', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
             ])
         ]),
         html.Hr(style={'borderColor': '#2d2d2d', 'margin': '15px 0'}),
-        html.Div(links, style={'display': 'flex', 'flexDirection': 'column'}),
+        html.Div(links, style={'display': 'flex', 'flexDirection': 'column', 'gap': '8px'}),
         html.Div(style={
             'marginTop': 'auto',
             'padding': '16px',
@@ -352,9 +343,16 @@ def render_sidebar():
         ])
     ])
 
+# Layout principal
+app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
+    dcc.Location(id='url', refresh=False),
+    dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False),
+    render_sidebar(),
+    html.Div(id='page-content', style=CONTENT_STYLE)
+])
+
 def render_panel_principal():
     return html.Div(children=[
-        # Encabezado limpio (Excluido icono notificaciones y avatar perfil)
         html.Div(style={'borderBottom': '1px solid #2d2d2d', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
             html.H1("Analítica del curso", style={'margin': '0', 'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px'}),
             html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': '#888888', 'fontSize': '14px'})
@@ -383,33 +381,31 @@ def render_panel_principal():
             ]),
         ]),
         html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
+        
         # Tarjetas de Métricas (KPIs)
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.Div(style={'position': 'absolute', 'right': '-10px', 'bottom': '-10px', 'opacity': '0.05', 'fontSize': '70px'}, children=""),
                 html.P("Estudiantes Inscritos", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(id='metric-total', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#ffffff'}),
                 html.P("100% del subgrupo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#00adb5'})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.Div(style={'position': 'absolute', 'right': '-10px', 'bottom': '-10px', 'opacity': '0.05', 'fontSize': '70px'}, children=" "),
                 html.P("Promedio General", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(id='metric-promedio', children="0.0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#00adb5'}),
                 html.P("Escala UTTEC (0-10)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#888888'})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.Div(style={'position': 'absolute', 'right': '-10px', 'bottom': '-10px', 'opacity': '0.05', 'fontSize': '70px'}, children=""),
                 html.P("Aprobados (>=6.0)", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#28a745'}),
                 html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#28a745'})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.Div(style={'position': 'absolute', 'right': '-10px', 'bottom': '-10px', 'opacity': '0.05', 'fontSize': '70px'}, children="! "),
                 html.P("En Riesgo (<6.0)", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(id='metric-riesgo', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#ff414d'}),
                 html.P(id='metric-riesgo-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#ff414d'})
-            ])
+            ]),
         ]),
+        
         # Gráficos
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
@@ -426,20 +422,20 @@ def render_panel_principal():
     ])
 
 def render_panel_individual(nombre_alumno):
-    df = obtener_datos_procesados()
+    df = obtener_datos_processed()
     if df.empty:
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
             html.H2("Cargando base de datos...", style={'color': '#00adb5'}),
             dcc.Link("← Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
-    
+        
     registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty:
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
             html.H2("Estudiante no encontrado.", style={'color': '#ff414d'}),
             dcc.Link("← Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
-    
+        
     datos = registro.iloc[0]
     nota = datos['calificacion_final']
     carrera = datos['carrera']
@@ -449,16 +445,13 @@ def render_panel_individual(nombre_alumno):
     # Calcular promedios del grupo
     df_grupo = df[(df['curso'] == curso) & (df['grupo'] == grupo)]
     promedio_grupo = df_grupo['calificacion_final'].mean() if not df_grupo.empty else 0.0
-    calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
     
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
     color_estatus = "#00adb5" if nota >= 6.0 else "#ff414d"
     
-    # Initials for avatar
     partes = nombre_alumno.split()
     iniciales = "".join([p[0] for p in partes if p][:2])
     
-    # Contenedor de carga para OpenAI
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
@@ -466,14 +459,13 @@ def render_panel_individual(nombre_alumno):
         children=html.Div(id="diagnostico-ia-target")
     )
     return html.Div(children=[
-        dcc.Link("← Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
-        # identidad del estudiante 
+        dcc.Link("← Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px'}),
         html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00adb5', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 173, 181, 0.3)'}, children=iniciales),
+            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00adb5', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
                 html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
                     html.H2(nombre_alumno, style={'color': '#ffffff', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 173, 181, 0.15)', 'color': '#00adb5', 'border': '1px solid rgba(0, 173, 181, 0.3)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 173, 181, 0.15)', 'color': '#00adb5', 'border': '1px solid rgba(0, 173, 181, 0.3)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700'})
                 ]),
                 html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': '#888888', 'fontSize': '14px'}),
                 html.P(f"Curso: {curso} | Grupo: {grupo}", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'})
@@ -500,49 +492,21 @@ def render_panel_individual(nombre_alumno):
         # Bloque de Insights de IA
         html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid rgba(0,173,181,0.2)', 'marginBottom': '30px'}, children=[
             html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
-                html.Span("*", style={'fontSize': '22px'}),
+                html.Span("✨", style={'fontSize': '22px'}),
                 html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': '#00adb5', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
             ]),
-            # Contenedor dinámico de IA
             ia_container
         ])
     ])
 
-# Layout principal: el panel de analítica vive en el layout raíz (estático) para que
-# los callbacks no destruyan dropdowns/gráficos al cambiar la ruta (None → /).
-app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
-    dcc.Location(id='url', refresh=False),
-    dcc.Interval(id='sync-interval', interval=5000, n_intervals=0),
-    dcc.Store(id='datos-cargados', data=False),
-    render_sidebar(),
-    html.Div(style=CONTENT_STYLE, children=[
-        html.Div(id='vista-principal', children=render_panel_principal()),
-        html.Div(id='vista-individual', style={'display': 'none'}),
-    ]),
-])
-
-@app.callback(
-    Output('vista-principal', 'style'),
-    Output('vista-individual', 'style'),
-    Output('vista-individual', 'children'),
-    Input('url', 'pathname'),
-)
+@app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
 def controlar_rutas(pathname):
-    """Alterna visibilidad entre vistas sin recrear el panel principal (evita flickering)."""
     if not pathname or pathname == '/':
-        return {'display': 'block'}, {'display': 'none'}, dash.no_update
-    if pathname.startswith('/alumno/'):
+        return render_panel_principal()
+    elif pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return (
-            {'display': 'none'},
-            {'display': 'block'},
-            render_panel_individual(nombre_alumno),
-        )
-    return (
-        {'display': 'none'},
-        {'display': 'block'},
-        html.Div("404 - Ruta no válida", style={'color': '#ff414d', 'padding': '40px'}),
-    )
+        return render_panel_individual(nombre_alumno)
+    return html.Div("404 - Ruta no válida")
 
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
@@ -554,7 +518,7 @@ def cargar_diagnostico_ia(pathname):
         return dash.no_update
     nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
     
-    df = obtener_datos_procesados()
+    df = obtener_datos_processed()
     if df.empty:
         return html.P("Base de datos no cargada.", style={'color': '#ff414d'})
     registro = df[df['nombre_alumno'] == nombre_alumno]
@@ -583,7 +547,6 @@ def cargar_diagnostico_ia(pathname):
         
     return html.Div(children=[
         html.Div(style={'display': 'flex', 'gap': '30px', 'flexWrap': 'wrap'}, children=[
-            # Columna izquierda: Riesgo y Predicción
             html.Div(style={'flex': '1', 'minWidth': '300px'}, children=[
                 html.Div(style={'marginBottom': '25px'}, children=[
                     html.Label("Nivel de Riesgo de Deserción:", style={'display': 'block', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
@@ -595,7 +558,6 @@ def cargar_diagnostico_ia(pathname):
                     html.P(prediccion, style={'color': '#e0e0e0', 'fontSize': '14px', 'lineHeight': '1.5'})
                 ])
             ]),
-            # Columna derecha: Recomendaciones
             html.Div(style={'flex': '1', 'minWidth': '300px', 'borderLeft': '1px solid #2d2d2d', 'paddingLeft': '30px'}, children=[
                 html.Label("Recomendaciones Pedagógicas:", style={'display': 'block', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '12px'}),
                 html.Ul([
@@ -606,20 +568,20 @@ def cargar_diagnostico_ia(pathname):
     ])
 
 @app.callback(
-    Output('carrera-dropdown', 'options'),
-    Output('curso-dropdown', 'options'),
-    Output('grupo-dropdown', 'options'),
-    Output('datos-cargados', 'data'),
-    Input('sync-interval', 'n_intervals'),
-    Input('carrera-dropdown', 'value'),
-    Input('curso-dropdown', 'value'),
+    [Output('carrera-dropdown', 'options'), 
+     Output('curso-dropdown', 'options'), 
+     Output('grupo-dropdown', 'options'),
+     Output('trigger-inicial', 'disabled')],
+    [Input('trigger-inicial', 'n_intervals'), 
+     Input('carrera-dropdown', 'value'), 
+     Input('curso-dropdown', 'value')]
 )
-def manejar_filtros(_n, carrera_sel, curso_sel):
-    df = obtener_datos_procesados()
+def manejar_filtros(n, carrera_sel, curso_sel):
+    df = obtener_datos_processed()
     if df is None or df.empty:
-        return dash.no_update, dash.no_update, dash.no_update, False
-
+        return [], [], [], False
     op_carreras = [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
+    
     df_f = df.copy()
     if carrera_sel:
         df_f = df_f[df_f['carrera'] == carrera_sel]
@@ -627,58 +589,41 @@ def manejar_filtros(_n, carrera_sel, curso_sel):
     if curso_sel:
         df_f = df_f[df_f['curso'] == curso_sel]
     op_grupos = [{'label': g, 'value': g} for g in sorted(df_f['grupo'].unique())]
+    
     return op_carreras, op_cursos, op_grupos, True
 
-
 @app.callback(
-    Output('sync-interval', 'disabled'),
-    Input('datos-cargados', 'data'),
+    [Output('grafico-pastel-general', 'figure'), 
+     Output('grafico-barras-general', 'figure'), 
+     Output('tabla-alumnos-container', 'children'),
+     Output('mensaje-estado-container', 'children'),
+     Output('metric-total', 'children'),
+     Output('metric-promedio', 'children'),
+     Output('metric-aprobados', 'children'),
+     Output('metric-aprobados-pct', 'children'),
+     Output('metric-riesgo', 'children'),
+     Output('metric-riesgo-pct', 'children')],
+    [Input('carrera-dropdown', 'value'), 
+     Input('curso-dropdown', 'value'), 
+     Input('grupo-dropdown', 'value')],
+    [State('carrera-dropdown', 'options')]  # <--- SEPARADO CORRECTAMENTE EN SU PROPIA LISTA COMO STATE (Rompe el bucle)
 )
-def controlar_polling(datos_cargados):
-    return bool(datos_cargados)
-
-
-@app.callback(
-output=[
-        Output('grafico-pastel-general', 'figure'),
-        Output('grafico-barras-general', 'figure'),
-        Output('tabla-alumnos-container', 'children'),
-        Output('mensaje-estado-container', 'children'),
-        Output('metric-total', 'children'),
-        Output('metric-promedio', 'children'),
-        Output('metric-aprobados', 'children'),
-        Output('metric-aprobados-pct', 'children'),
-        Output('metric-riesgo', 'children'),
-        Output('metric-riesgo-pct', 'children')
-    ],
-    inputs=[
-        Input('carrera-dropdown', 'value'),
-        Input('curso-dropdown', 'value'),
-        Input('grupo-dropdown', 'value'),
-        Input('datos-cargados', 'data')
-    ],
-    state=[
-        State('sync-interval', 'n_intervals')
-    ]
-)
-
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
-    df = obtener_datos_procesados()
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
+    df = obtener_datos_processed()
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
-    
+        
     df_render = df.copy()
-    if carrera_sel:
+    if carrera_sel: 
         df_render = df_render[df_render['carrera'] == carrera_sel]
-    if curso_sel:
+    if curso_sel: 
         df_render = df_render[df_render['curso'] == curso_sel]
-    if grupo_sel:
+    if grupo_sel: 
         df_render = df_render[df_render['grupo'] == grupo_sel]
         
     if df_render.empty:
         return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
         
-    # Calcular KPIs del subgrupo
     total_estudiantes = len(df_render)
     promedio_gral = df_render['calificacion_final'].mean()
     aprobados_df = df_render[df_render['calificacion_final'] >= 6.0]
@@ -691,7 +636,6 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
     pct_riesgo = (total_riesgo / total_estudiantes * 100) if total_estudiantes > 0 else 0
     df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo (<6.0)')
     
-    # Gráfico de pastel adaptado al diseño oscuro
     fig_pie = px.pie(df_render, names='Estatus', title="Distribución de Estatus Académico", color='Estatus', color_discrete_map={'Aprobado (>=6.0)': '#00adb5', 'Riesgo (<6.0)': '#ff414d'}, template='plotly_dark')
     fig_pie.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -700,7 +644,6 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
         font=dict(family="Outfit, sans-serif")
     )
     
-    # Gráfico de barras nominal con colores reactivos
     fig_bar = px.bar(df_render, x='nombre_alumno', y='calificacion_final', title="Calificaciones Finales", template='plotly_dark')
     fig_bar.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -713,7 +656,6 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
     )
     fig_bar.update_traces(marker_color='#00adb5')
     
-    # Contenedor nominal de alumnos matriculados
     elementos_tabla = []
     for _, fila in df_render.iterrows():
         nombre = fila['nombre_alumno']
@@ -725,12 +667,8 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, datos_cargados, _n):
         )
     contenedor_lista = html.Div(elementos_tabla, style={'maxHeight': '400px', 'overflowY': 'auto', 'backgroundColor': '#121212', 'borderRadius': '8px', 'padding': '10px', 'border': '1px solid #2d2d2d'})
     
-    return (fig_pie, fig_bar, contenedor_lista, "", 
-            str(total_estudiantes), f"{promedio_gral:.1f}", 
-            str(total_aprobados), f"{pct_aprobados:.1f}% del total", 
-            str(total_riesgo), f"{pct_riesgo:.1f}% del total")
+    return (fig_pie, fig_bar, contenedor_lista, "", str(total_estudiantes), f"{promedio_gral:.1f}", str(total_aprobados), f"{pct_aprobados:.1f}% del total", str(total_riesgo), f"{pct_riesgo:.1f}% del total")
 
-# Callback interactivo de redirección al hacer click sobre el gráfico de barras
 @app.callback(
     Output('url', 'pathname', allow_duplicate=True),
     Input('grafico-barras-general', 'clickData'),
@@ -745,6 +683,7 @@ def redirigir_alumno(clickData, current_path):
         except Exception as e:
             print(f"Error en redirección clickData: {e}")
             return dash.no_update
+    return dash.no_update
 
 if __name__ == '__main__':
     puerto = int(os.environ.get('PORT', 5000))
