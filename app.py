@@ -441,6 +441,10 @@ def render_panel_principal():
                 html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
                 dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", style={'color': '#000000'})
             ]),
+            html.Div(style={'flex': '1'}, children=[
+                html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                dcc.Input(id='busqueda-input', type='text', placeholder="Escribe nombre...", className='Select-control', style={'width': '100%', 'height': '38px', 'borderRadius': '4px', 'border': '1px solid #2d2d2d', 'backgroundColor': '#1e1e1e', 'color': '#ffffff', 'paddingLeft': '10px', 'boxSizing': 'border-box'})
+            ]),
         ]),
 
         html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
@@ -703,10 +707,11 @@ def manejar_filtros(n, carrera_sel, curso_sel):
      Output('metric-riesgo-pct', 'children')],
     [Input('carrera-dropdown', 'value'), 
      Input('curso-dropdown', 'value'), 
-     Input('grupo-dropdown', 'value')],
+     Input('grupo-dropdown', 'value'),
+     Input('busqueda-input', 'value')],
     [State('carrera-dropdown', 'options')]
 )
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, options_carrera):
     df = obtener_datos_procesados()
     if df is None or df.empty:
         return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
@@ -715,6 +720,8 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, options_carrera):
     if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
     if curso_sel: df_render = df_render[df_render['curso'] == curso_sel]
     if grupo_sel: df_render = df_render[df_render['grupo'] == grupo_sel]
+    if busqueda_sel:
+        df_render = df_render[df_render['nombre_alumno'].str.contains(busqueda_sel.strip().upper(), na=False)]
 
     if df_render.empty:
         return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
