@@ -2,7 +2,7 @@ import os
 import requests
 import pandas as pd
 import dash
-from dash import dcc, html
+from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 from flask_caching import Cache
@@ -64,7 +64,7 @@ def obtener_datos_moodle_live():
 
     lista_completa_alumnos = []
     try:
-        # 1. Obtener Categorías (Carreras)
+        #  Obtener carreras
         param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
         res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=15)
         categorias = res_cat.json()
@@ -72,7 +72,7 @@ def obtener_datos_moodle_live():
             print("Error al obtener categorías de Moodle:", categorias)
             return pd.DataFrame()
 
-        # 2. Obtener Cursos
+        # Obtener cursos
         param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
         res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
         cursos = res_cur.json()
@@ -96,7 +96,7 @@ def obtener_datos_moodle_live():
                     nombre_carrera = cat.get('name', '').strip().upper()
                     break
 
-            # Mapeo estático de División para el Propedéutico DTIC (ID 50) y derivados
+            # Mapeo de  División para el Propedéutico DTICy los demás
             es_propedeutico_dtic = (course_id == 50 or 
                                     "DTIC-PROP-GRAL" in curso.get('shortname', '') or 
                                     "PROPEDÉUTICO DTIC" in nombre_curso.upper())
@@ -104,7 +104,7 @@ def obtener_datos_moodle_live():
             if es_propedeutico_dtic:
                 nombre_carrera = "DIVISIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN Y COMUNICACIÓN"
 
-            # 3. Consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula numerosa como Propedéutico)
+            # Consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula numerosa como Propedéutico)
             param_calif = {
                 'wstoken': token_moodle,
                 'wsfunction': 'gradereport_user_get_grades_table',
@@ -359,7 +359,6 @@ CONTENT_STYLE = {
 }
 
 def render_sidebar():
-    # Menú depurado estéticamente: Se retiraron todos los emojis e íconos y el banner inferior
     menu_items = [
         ("Inicio", "/"),
         ("Curso", "#"),
@@ -413,7 +412,7 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}
 
 def render_panel_principal():
     return html.Div(children=[
-        # Encabezado limpio (Excluido icono notificaciones y avatar perfil)
+        # Encabezado limpio
         html.Div(style={'borderBottom': '1px solid #2d2d2d', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
             html.H1("Analítica del curso", style={'margin': '0', 'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px'}),
             html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': '#888888', 'fontSize': '14px'})
@@ -449,7 +448,7 @@ def render_panel_principal():
 
         html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
 
-        # Tarjetas de Métricas (KPIs) (Se removieron todos los emojis/iconos de fondo)
+        # Tarjetas de Métricas (KPIs)
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Estudiantes Inscritos", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -518,7 +517,7 @@ def render_panel_individual(nombre_alumno):
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
     color_estatus = "#00adb5" if nota >= 6.0 else "#ff414d"
     
-    # Initials for avatar
+    # Initials  de avatar 
     partes = nombre_alumno.split()
     iniciales = "".join([p[0] for p in partes if p][:2])
 
@@ -549,7 +548,7 @@ def render_panel_individual(nombre_alumno):
     return html.Div(children=[
         dcc.Link("Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
         
-        # Cabecera de identidad del estudiante (excluido perfil e iconos generales)
+        # Cabecera de identidad del estudiante
         html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
             html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00adb5', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 173, 181, 0.3)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
@@ -586,7 +585,7 @@ def render_panel_individual(nombre_alumno):
             ])
         ]),
 
-        # Bloque de Insights de IA (Sin emoji de estrella)
+        # Bloque de Insights de IA 
         html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid rgba(0,173,181,0.2)', 'marginBottom': '30px'}, children=[
             html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
                 html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': '#00adb5', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
@@ -597,6 +596,99 @@ def render_panel_individual(nombre_alumno):
         ])
     ])
 
+def render_panel_pruebas():
+    # Obtener datos de la base local
+    df = obtener_datos_procesados()
+    
+    if df.empty:
+        records_to_show = []
+    else:
+        # Tomar una muestra fija de 10 estudiantes
+        df_muestra = df.head(10).copy()
+        
+        # Calcular estatus
+        df_muestra['estatus'] = df_muestra['calificacion_final'].apply(
+            lambda val: "Aprobado" if val >= 6.0 else "Riesgo"
+        )
+        
+        # Renombrar columnas para la tabla visual
+        df_muestra_ren = df_muestra[[
+            'carrera', 'curso', 'grupo', 'nombre_alumno', 'calificacion_final', 'estatus'
+        ]].rename(columns={
+            'carrera': 'Carrera',
+            'curso': 'Curso Moodle',
+            'grupo': 'Grupo',
+            'nombre_alumno': 'Estudiante',
+            'calificacion_final': 'Calificación',
+            'estatus': 'Estatus'
+        })
+        records_to_show = df_muestra_ren.to_dict('records')
+
+    # Columnas para DataTable
+    columnas = [
+        {"name": "Carrera", "id": "Carrera"},
+        {"name": "Curso Moodle", "id": "Curso Moodle"},
+        {"name": "Grupo", "id": "Grupo"},
+        {"name": "Estudiante", "id": "Estudiante"},
+        {"name": "Calificación", "id": "Calificación"},
+        {"name": "Estatus", "id": "Estatus"}
+    ]
+
+    return html.Div(children=[
+        # Título
+        html.H1("FUNCIOMAIENTO DE LA TOMA DE DATOS", style={'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px', 'marginBottom': '10px'}),
+        
+        # Explicación  de lo que se trata este apartado  de prueba
+        html.P("datos extraídos del archivo local de JSON donde se tomaron todos los datos sincronizado con Virtual UTTEC.", 
+               style={'color': '#888888', 'fontSize': '15px', 'marginBottom': '30px', 'lineHeight': '1.6'}),
+        
+        # Contenedor de la Tabla
+        html.Div(style={'backgroundColor': '#1e1e1e', 'border': '1px solid #2d2d2d', 'borderRadius': '8px', 'padding': '20px'}, children=[
+            dash_table.DataTable(
+                data=records_to_show,
+                columns=columnas,
+                style_header={
+                    'backgroundColor': '#2d2d2d',
+                    'color': '#00adb5',
+                    'fontWeight': 'bold',
+                    'border': '1px solid #3d3d3d',
+                    'padding': '10px'
+                },
+                style_cell={
+                    'backgroundColor': '#1e1e1e',
+                    'color': '#ffffff',
+                    'border': '1px solid #2d2d2d',
+                    'padding': '10px',
+                    'textAlign': 'left',
+                    'fontFamily': 'Outfit, sans-serif'
+                },
+                style_data_conditional=[
+                    {
+                        'if': {'row_index': 'odd'},
+                        'backgroundColor': '#151515',
+                    },
+                    {
+                        'if': {
+                            'column_id': 'Estatus',
+                            'filter_query': '{Estatus} eq "Aprobado"'
+                        },
+                        'color': '#28a745',
+                        'fontWeight': 'bold'
+                    },
+                    {
+                        'if': {
+                            'column_id': 'Estatus',
+                            'filter_query': '{Estatus} eq "Riesgo"'
+                        },
+                        'color': '#ff414d',
+                        'fontWeight': 'bold'
+                    }
+                ],
+                no_data_char="No hay datos disponibles."
+            )
+        ])
+    ])
+
 @app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
 def controlar_rutas(pathname):
     if not pathname or pathname == '/': 
@@ -604,6 +696,8 @@ def controlar_rutas(pathname):
     elif pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
         return render_panel_individual(nombre_alumno)
+    elif pathname == '/pruebadeFuncionalidad':
+        return render_panel_pruebas()
     return html.Div("404 - Ruta no válida")
 
 # Callback asíncrono para cargar el diagnóstico de IA
@@ -726,7 +820,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, option
     if df_render.empty:
         return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
-    # Procesar segmentación avanzada para el curso Propedéutico DTIC en el banner de estado
+    # curso Propedéutico DTIC en el banner
     mensaje_segmentacion = ""
     es_propedeutico = curso_sel and ("PROPEDÉUTICO" in curso_sel or "PROP" in curso_sel)
     if es_propedeutico and grupo_sel and grupo_sel != "SIN GRUPO ASIGNADO":
