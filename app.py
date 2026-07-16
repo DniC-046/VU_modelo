@@ -14,14 +14,14 @@ import threading
 import time
 import re
 
-# Cargar variables de entorno de forma segura al inicio de la aplicación (Local y Producción)
+# Cargar variables de entorno 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     dotenv.load_dotenv(dotenv_path)
 else:
     dotenv.load_dotenv()
 
-# Inicialización de la aplicación con la fuente premium Outfit
+# Inicialización de la aplicación
 app = dash.Dash(
     __name__, 
     title="Analítica UTTEC - Institucional", 
@@ -158,7 +158,7 @@ def obtener_datos_moodle_live():
                             elif 'redes' in item_text or 'cisco' in item_text or 'huawei' in item_text or 'ird' in item_text:
                                 ird_score += 1
 
-                    # Lógica avanzada de segmentación de grupos para Propedéutico DTIC
+                    # segmentación de grupos para Propedéutico DTIC
                     grupo_detectado = "SIN GRUPO ASIGNADO"
                     if es_propedeutico_dtic:
                         if ird_score > dsm_score:
@@ -191,7 +191,7 @@ def obtener_datos_moodle_live():
                         'calificacion_final': nota_final
                     })
             except Exception as e:
-                # Omitir silenciosamente errores individuales para no interrumpir el flujo del pipeline
+                # Omitir errores individuales para no interrumpir el flujo del pipeline
                 continue 
 
         return pd.DataFrame(lista_completa_alumnos)
@@ -517,7 +517,7 @@ def render_panel_individual(nombre_alumno):
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
     color_estatus = "#00adb5" if nota >= 6.0 else "#ff414d"
     
-    # Initials  de avatar 
+    # Iniciales  de avatar 
     partes = nombre_alumno.split()
     iniciales = "".join([p[0] for p in partes if p][:2])
 
@@ -684,7 +684,7 @@ def render_panel_pruebas():
                         'fontWeight': 'bold'
                     }
                 ],
-                no_data_char="No hay datos disponibles."
+                locale_format={'noDataMessage': 'No hay datos disponibles.'}
             )
         ])
     ])
@@ -714,7 +714,7 @@ def render_panel_pruebas_fallback(error_msg=""):
         html.H1("FUNCIOMAIENTO DE LA TOMA DE DATOS", style={'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px', 'marginBottom': '10px'}),
         
         # Explicación aprobada por el usuario con advertencia de fallback
-        html.P("datos extraídos del archivo local de json donde se tomaron todos los datos sincronizado con virtual uttec. (MODO DE AUDITORÍA DE RESPALDO ACTIVO)", 
+        html.P("datos extraídos del archivo local de json donde se tomaron todos los datos sincronizado con virtual uttec", 
                style={'color': '#ff414d', 'fontSize': '15px', 'marginBottom': '30px', 'lineHeight': '1.6'}),
         
         # Contenedor de la Tabla Estática
