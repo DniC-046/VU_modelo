@@ -21,6 +21,39 @@ if os.path.exists(dotenv_path):
 else:
     dotenv.load_dotenv()
 
+import base64
+
+def get_svg_icon(name, color="#b0c4de"):
+    paths = {
+        'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+        'curso': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+        'users': '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+        'calificaciones': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
+        'chart': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+        'activities': '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+        'resources': '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>',
+        'forums': '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+        'messages': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+        'settings': '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+        'sun': '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+        'moon': '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    }
+    
+    inner = paths.get(name, '')
+    svg_string = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{inner}</svg>'
+    encoded = base64.b64encode(svg_string.encode()).decode()
+    
+    return html.Img(
+        src=f"data:image/svg+xml;base64,{encoded}",
+        style={
+            "width": "18px",
+            "height": "18px",
+            "marginRight": "12px",
+            "display": "inline-block",
+            "verticalAlign": "middle"
+        }
+    )
+
 # Inicialización de la aplicación
 app = dash.Dash(
     __name__, 
@@ -343,8 +376,8 @@ SIDEBAR_STYLE = {
     'bottom': '0',
     'width': '260px',
     'padding': '30px 20px',
-    'backgroundColor': '#1e1e1e',
-    'borderRight': '1px solid #2d2d2d',
+    'backgroundColor': 'var(--sidebar-bg)',
+    'borderRight': '1px solid rgba(255, 255, 255, 0.08)',
     'display': 'flex',
     'flexDirection': 'column',
     'gap': '20px',
@@ -354,31 +387,34 @@ SIDEBAR_STYLE = {
 CONTENT_STYLE = {
     'marginLeft': '280px',
     'padding': '40px',
-    'backgroundColor': '#121212',
+    'backgroundColor': 'var(--bg-color)',
     'minHeight': '100vh',
 }
 
 def render_sidebar():
     menu_items = [
-        ("Inicio", "/"),
-        ("Curso", "#"),
-        ("Participantes", "#"),
-        ("Calificaciones", "#"),
-        ("Analítica", "/"),
-        ("Actividades", "#"),
-        ("Recursos", "#"),
-        ("Foros", "#"),
-        ("Mensajes", "#"),
-        ("Configuración", "#")
+        ("Inicio", "/", "home"),
+        ("Curso", "#", "curso"),
+        ("Participantes", "#", "users"),
+        ("Calificaciones", "#", "calificaciones"),
+        ("Analítica", "/", "chart"),
+        ("Actividades", "#", "activities"),
+        ("Recursos", "#", "resources"),
+        ("Foros", "#", "forums"),
+        ("Mensajes", "#", "messages"),
+        ("Configuración", "#", "settings")
     ]
     
     links = []
-    for name, href in menu_items:
+    for name, href, icon_name in menu_items:
         is_active = (name == "Analítica")
+        color = "#ffffff" if is_active else "#b0c4de"
+        icon_svg = get_svg_icon(icon_name, color)
         if is_active:
             links.append(
                 dcc.Link(
                     html.Div(className='sidebar-link-active', children=[
+                        icon_svg,
                         html.Span(name, style={'fontSize': '15px'})
                     ]),
                     href=href,
@@ -388,21 +424,59 @@ def render_sidebar():
         else:
             links.append(
                 html.Div(className='sidebar-link', children=[
+                    icon_svg,
                     html.Span(name, style={'fontSize': '15px'})
                 ])
             )
 
+    # Base64 encoded mortarboard school logo
+    school_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#ffffff"/>
+        <path d="M6 11.5v4.5c0 1.5 3 2.5 6 2.5s6-1 6-2.5v-4.5"/>
+        <path d="M22 9v4"/>
+    </svg>"""
+    school_encoded = base64.b64encode(school_svg.encode()).decode()
+    school_logo = html.Img(
+        src=f"data:image/svg+xml;base64,{school_encoded}",
+        style={'width': '36px', 'height': '36px', 'marginRight': '12px', 'verticalAlign': 'middle'}
+    )
+
+    logo_header = html.Div(style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 5px'}, children=[
+        school_logo,
+        html.Div(children=[
+            html.H2("Plataforma", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
+            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#00A859', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
+        ])
+    ])
+
+    # Botón conmutador de tema al final del sidebar (usando marginTop: auto para empujarlo al fondo)
+    theme_toggle = html.Button(
+        id='theme-toggle-btn',
+        n_clicks=0,
+        className='sidebar-link',
+        style={
+            'backgroundColor': 'transparent',
+            'border': 'none',
+            'width': '100%',
+            'textAlign': 'left',
+            'marginTop': 'auto',
+            'padding': '12px 18px',
+            'color': 'var(--sidebar-text)',
+            'cursor': 'pointer',
+            'display': 'flex',
+            'alignItems': 'center'
+        }
+    )
+
     return html.Div(style=SIDEBAR_STYLE, children=[
-        html.Div(style={'padding': '10px 5px'}, children=[
-            html.H2("Plataforma", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
-            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '18px', 'fontWeight': '800', 'color': '#00adb5', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
-        ]),
-        html.Hr(style={'borderColor': '#2d2d2d', 'margin': '15px 0'}),
-        html.Div(links, style={'display': 'flex', 'flexDirection': 'column'})
+        logo_header,
+        html.Hr(style={'borderColor': 'rgba(255, 255, 255, 0.08)', 'margin': '10px 0'}),
+        html.Div(links, style={'display': 'flex', 'flexDirection': 'column'}),
+        theme_toggle
     ])
 
 # Layout principal
-app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}, children=[
+app.layout = html.Div(id='main-container', className='dark-theme', children=[
     dcc.Location(id='url', refresh=False),
     # Intervalo inicial que corre cada 3 segundos hasta desactivarse cuando cargan los datos
     dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False), 
@@ -413,36 +487,36 @@ app.layout = html.Div(style={'backgroundColor': '#121212', 'minHeight': '100vh'}
 def render_panel_principal():
     return html.Div(children=[
         # Encabezado limpio
-        html.Div(style={'borderBottom': '1px solid #2d2d2d', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
-            html.H1("Analítica del curso", style={'margin': '0', 'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px'}),
-            html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': '#888888', 'fontSize': '14px'})
+        html.Div(style={'borderBottom': '1px solid var(--border-color)', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
+            html.H1("Analítica del curso", style={'margin': '0', 'color': 'var(--text-color)', 'fontWeight': '700', 'fontSize': '28px'}),
+            html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': 'var(--text-muted)', 'fontSize': '14px'})
         ]),
         
         # Selectores
         html.Div(style={
             'display': 'flex',
             'gap': '20px',
-            'backgroundColor': '#1e1e1e',
+            'backgroundColor': 'var(--card-bg)',
             'padding': '20px',
             'borderRadius': '12px',
-            'border': '1px solid #2d2d2d',
+            'border': '1px solid var(--border-color)',
             'marginBottom': '30px'
         }, children=[
             html.Div(style={'flex': '1'}, children=[
-                html.Label("División / Carrera:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Label("División / Carrera:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
                 dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...", style={'color': '#000000'})
             ]),
             html.Div(style={'flex': '1'}, children=[
-                html.Label("Curso Moodle:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Label("Curso Moodle:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
                 dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...", style={'color': '#000000'})
             ]),
             html.Div(style={'flex': '1'}, children=[
-                html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
                 dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", style={'color': '#000000'})
             ]),
             html.Div(style={'flex': '1'}, children=[
-                html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Input(id='busqueda-input', type='text', placeholder="Escribe nombre...", className='Select-control', style={'width': '100%', 'height': '38px', 'borderRadius': '4px', 'border': '1px solid #2d2d2d', 'backgroundColor': '#1e1e1e', 'color': '#ffffff', 'paddingLeft': '10px', 'boxSizing': 'border-box'})
+                html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
+                dcc.Input(id='busqueda-input', type='text', placeholder="Escribe nombre...", className='Select-control', style={'width': '100%', 'height': '38px', 'borderRadius': '4px', 'border': '1px solid var(--border-color)', 'backgroundColor': 'var(--card-bg)', 'color': 'var(--text-color)', 'paddingLeft': '10px', 'boxSizing': 'border-box'})
             ]),
         ]),
 
@@ -450,40 +524,40 @@ def render_panel_principal():
 
         # Tarjetas de Métricas (KPIs)
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.P("Estudiantes Inscritos", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-total', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#ffffff'}),
-                html.P("100% del subgrupo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#00adb5'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
+                html.P("Estudiantes Inscritos", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(id='metric-total', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                html.P("100% del subgrupo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--accent-color)'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.P("Promedio General", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-promedio', children="0.0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#00adb5'}),
-                html.P("Escala UTTEC (0-10)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#888888'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
+                html.P("Promedio General", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(id='metric-promedio', children="0.0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': 'var(--accent-color)'}),
+                html.P("Escala UTTEC (0-10)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.P("Aprobados (>= 6.0)", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#28a745'}),
-                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#28a745'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
+                html.P("Aprobados (>= 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#00A859'}),
+                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#00A859'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'position': 'relative', 'overflow': 'hidden'}, children=[
-                html.P("En Riesgo (< 6.0)", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-riesgo', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#ff414d'}),
-                html.P(id='metric-riesgo-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#ff414d'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
+                html.P("En Riesgo (< 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(id='metric-riesgo', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#FF4D4D'}),
+                html.P(id='metric-riesgo-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#FF4D4D'})
             ])
         ]),
 
         # Gráficos
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
-            html.Div(style={'width': '40%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
+            html.Div(style={'width': '40%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
             ]),
-            html.Div(style={'width': '60%', 'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
+            html.Div(style={'width': '60%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
             ])
         ]),
 
-        html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-            html.H3("Rendimiento Nominal de Estudiantes Matriculados", style={'color': '#00adb5', 'marginTop': '0', 'marginBottom': '20px', 'fontSize': '18px', 'fontWeight': '600'}),
+        html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+            html.H3("Rendimiento Nominal de Estudiantes Matriculados", style={'color': 'var(--accent-color)', 'marginTop': '0', 'marginBottom': '20px', 'fontSize': '18px', 'fontWeight': '600'}),
             html.Div(id='tabla-alumnos-container')
         ])
     ])
@@ -492,15 +566,15 @@ def render_panel_individual(nombre_alumno):
     df = obtener_datos_procesados()
     if df.empty: 
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
-            html.H2("Cargando base de datos...", style={'color': '#00adb5'}),
-            dcc.Link("Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': 'bold', 'textDecoration': 'none'})
+            html.H2("Cargando base de datos...", style={'color': 'var(--accent-color)'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
     
     registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty: 
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
-            html.H2("Estudiante no encontrado.", style={'color': '#ff414d'}),
-            dcc.Link("Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': 'bold', 'textDecoration': 'none'})
+            html.H2("Estudiante no encontrado.", style={'color': '#FF4D4D'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
     
     datos = registro.iloc[0]
@@ -515,7 +589,7 @@ def render_panel_individual(nombre_alumno):
     calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
     
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
-    color_estatus = "#00adb5" if nota >= 6.0 else "#ff414d"
+    color_estatus = "#00A859" if nota >= 6.0 else "#FF4D4D"
     
     # Iniciales  de avatar 
     partes = nombre_alumno.split()
@@ -541,225 +615,56 @@ def render_panel_individual(nombre_alumno):
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
-        color="#00adb5",
+        color="#00A859",
         children=html.Div(id="diagnostico-ia-target")
     )
 
     return html.Div(children=[
-        dcc.Link("Volver a la vista general", href="/", style={'color': '#00adb5', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
+        dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
         
         # Cabecera de identidad del estudiante
-        html.Div(style={'backgroundColor': '#1e1e1e', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00adb5', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 173, 181, 0.3)'}, children=iniciales),
+        html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
+            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': 'var(--accent-color)', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 168, 89, 0.3)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
                 html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
-                    html.H2(nombre_alumno, style={'color': '#ffffff', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 173, 181, 0.15)', 'color': '#00adb5', 'border': '1px solid rgba(0, 173, 181, 0.3)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    html.H2(nombre_alumno, style={'color': 'var(--text-color)', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
+                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 168, 89, 0.15)', 'color': 'var(--accent-color)', 'border': '1px solid rgba(0, 168, 89, 0.3)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
                 ]),
-                html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': '#888888', 'fontSize': '14px'}),
-                html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'})
+                html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
+                html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
             ])
         ]),
 
         # KPIs del Alumno
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                html.P("Calificación Acumulada", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                html.P("Calificación Acumulada", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(f"{nota:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': color_estatus}),
-                html.P("Escala 0.0 - 10.0", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#555555'})
+                html.P("Escala 0.0 - 10.0", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                html.P("Promedio del Grupo", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(f"{promedio_grupo:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': '#ffffff'}),
-                html.P("Grupo comparativo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#888888'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                html.P("Promedio del Grupo", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(f"{promedio_grupo:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                html.P("Grupo comparativo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                html.P("Calificación Máxima", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(f"{calif_max:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': '#ffffff'}),
-                html.P("Puntaje tope actual", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#888888'})
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                html.P("Calificación Máxima", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                html.H3(f"{calif_max:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                html.P("Puntaje tope actual", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
             ]),
-            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': '#1e1e1e', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #2d2d2d'}, children=[
-                html.P("Estatus Académico", style={'margin': '0', 'color': '#888888', 'fontSize': '14px', 'fontWeight': '500'}),
+            html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                html.P("Estatus Académico", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(estatus, style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': color_estatus}),
-                html.P("Según nota de corte (6.0)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#555555'})
+                html.P("Según nota de corte (6.0)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
             ])
         ]),
 
         # Bloque de Insights de IA 
-        html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid rgba(0,173,181,0.2)', 'marginBottom': '30px'}, children=[
+        html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px'}, children=[
             html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
-                html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': '#00adb5', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
+                html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': 'var(--accent-color)', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
             ]),
-            
-            # Contenedor dinámico de IA
             ia_container
-        ])
-    ])
-
-def render_panel_pruebas():
-    # Obtener datos de la base local
-    df = obtener_datos_procesados()
-    
-    if df.empty:
-        records_to_show = []
-    else:
-        # Tomar una muestra fija de 10 estudiantes
-        df_muestra = df.head(10).copy()
-        
-        # Calcular estatus
-        df_muestra['estatus'] = df_muestra['calificacion_final'].apply(
-            lambda val: "Aprobado" if val >= 6.0 else "Riesgo"
-        )
-        
-        # Renombrar columnas para la tabla visual
-        df_muestra_ren = df_muestra[[
-            'carrera', 'curso', 'grupo', 'nombre_alumno', 'calificacion_final', 'estatus'
-        ]].rename(columns={
-            'carrera': 'Carrera',
-            'curso': 'Curso Moodle',
-            'grupo': 'Grupo',
-            'nombre_alumno': 'Estudiante',
-            'calificacion_final': 'Calificación',
-            'estatus': 'Estatus'
-        })
-        records_to_show = df_muestra_ren.to_dict('records')
-
-    # Columnas para DataTable
-    columnas = [
-        {"name": "Carrera", "id": "Carrera"},
-        {"name": "Curso Moodle", "id": "Curso Moodle"},
-        {"name": "Grupo", "id": "Grupo"},
-        {"name": "Estudiante", "id": "Estudiante"},
-        {"name": "Calificación", "id": "Calificación"},
-        {"name": "Estatus", "id": "Estatus"}
-    ]
-
-    return html.Div(children=[
-        # Título
-        html.H1("FUNCIOMAIENTO DE LA TOMA DE DATOS", style={'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px', 'marginBottom': '10px'}),
-        
-        # Explicación  de lo que se trata este apartado  de prueba
-        html.P("datos extraídos del archivo local de JSON donde se tomaron todos los datos sincronizado con Virtual UTTEC.", 
-               style={'color': '#888888', 'fontSize': '15px', 'marginBottom': '30px', 'lineHeight': '1.6'}),
-        
-        # Contenedor de la Tabla
-        html.Div(style={'backgroundColor': '#1e1e1e', 'border': '1px solid #2d2d2d', 'borderRadius': '8px', 'padding': '20px'}, children=[
-            dash_table.DataTable(
-                data=records_to_show,
-                columns=columnas,
-                style_header={
-                    'backgroundColor': '#2d2d2d',
-                    'color': '#00adb5',
-                    'fontWeight': 'bold',
-                    'border': '1px solid #3d3d3d',
-                    'padding': '10px'
-                },
-                style_cell={
-                    'backgroundColor': '#1e1e1e',
-                    'color': '#ffffff',
-                    'border': '1px solid #2d2d2d',
-                    'padding': '10px',
-                    'textAlign': 'left',
-                    'fontFamily': 'Outfit, sans-serif'
-                },
-                style_data_conditional=[
-                    {
-                        'if': {'row_index': 'odd'},
-                        'backgroundColor': '#151515',
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Estatus',
-                            'filter_query': '{Estatus} eq "Aprobado"'
-                        },
-                        'color': '#28a745',
-                        'fontWeight': 'bold'
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Estatus',
-                            'filter_query': '{Estatus} eq "Riesgo"'
-                        },
-                        'color': '#ff414d',
-                        'fontWeight': 'bold'
-                    }
-                ],
-                locale_format={'noDataMessage': 'No hay datos disponibles.'}
-            )
-        ])
-    ])
-def render_panel_pruebas_fallback(error_msg=""):
-    print(f"Error en pruebas: {error_msg}")
-    
-    # Datos simulados quemados (hardcoded)
-    datos_simulados = [
-        {"Carrera": "DSM", "Curso Moodle": "Propedéutico DTIC", "Grupo": "DSM 2024-3-1", "Estudiante": "ESTUDIANTE PRUEBA 1", "Calificación": 8.5, "Estatus": "Aprobado"},
-        {"Carrera": "DSM", "Curso Moodle": "Propedéutico DTIC", "Grupo": "DSM 2024-3-1", "Estudiante": "ESTUDIANTE PRUEBA 2", "Calificación": 5.4, "Estatus": "Riesgo"},
-        {"Carrera": "IRD", "Curso Moodle": "Propedéutico DTIC", "Grupo": "IRD 2025-3-1", "Estudiante": "ESTUDIANTE PRUEBA 3", "Calificación": 9.2, "Estatus": "Aprobado"},
-        {"Carrera": "IRD", "Curso Moodle": "Propedéutico DTIC", "Grupo": "IRD 2025-3-1", "Estudiante": "ESTUDIANTE PRUEBA 4", "Calificación": 4.1, "Estatus": "Riesgo"},
-        {"Carrera": "DSM", "Curso Moodle": "Propedéutico DTIC", "Grupo": "DSM 2024-3-2", "Estudiante": "ESTUDIANTE PRUEBA 5", "Calificación": 7.0, "Estatus": "Aprobado"}
-    ]
-    
-    columnas = [
-        {"name": "Carrera", "id": "Carrera"},
-        {"name": "Curso Moodle", "id": "Curso Moodle"},
-        {"name": "Grupo", "id": "Grupo"},
-        {"name": "Estudiante", "id": "Estudiante"},
-        {"name": "Calificación", "id": "Calificación"},
-        {"name": "Estatus", "id": "Estatus"}
-    ]
-    
-    return html.Div(children=[
-        # Título solicitado
-        html.H1("FUNCIOMAIENTO DE LA TOMA DE DATOS", style={'color': '#ffffff', 'fontWeight': '700', 'fontSize': '28px', 'marginBottom': '10px'}),
-        
-        # Explicación aprobada por el usuario con advertencia de fallback
-        html.P("datos extraídos del archivo local de json donde se tomaron todos los datos sincronizado con virtual uttec", 
-               style={'color': '#ff414d', 'fontSize': '15px', 'marginBottom': '30px', 'lineHeight': '1.6'}),
-        
-        # Contenedor de la Tabla Estática
-        html.Div(style={'backgroundColor': '#1e1e1e', 'border': '1px solid #2d2d2d', 'borderRadius': '8px', 'padding': '20px'}, children=[
-            dash_table.DataTable(
-                data=datos_simulados,
-                columns=columnas,
-                style_header={
-                    'backgroundColor': '#2d2d2d',
-                    'color': '#00adb5',
-                    'fontWeight': 'bold',
-                    'border': '1px solid #3d3d3d',
-                    'padding': '10px'
-                },
-                style_cell={
-                    'backgroundColor': '#1e1e1e',
-                    'color': '#ffffff',
-                    'border': '1px solid #2d2d2d',
-                    'padding': '10px',
-                    'textAlign': 'left',
-                    'fontFamily': 'Outfit, sans-serif'
-                },
-                style_data_conditional=[
-                    {
-                        'if': {'row_index': 'odd'},
-                        'backgroundColor': '#151515',
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Estatus',
-                            'filter_query': '{Estatus} eq "Aprobado"'
-                        },
-                        'color': '#28a745',
-                        'fontWeight': 'bold'
-                    },
-                    {
-                        'if': {
-                            'column_id': 'Estatus',
-                            'filter_query': '{Estatus} eq "Riesgo"'
-                        },
-                        'color': '#ff414d',
-                        'fontWeight': 'bold'
-                    }
-                ]
-            )
         ])
     ])
 
@@ -770,11 +675,6 @@ def controlar_rutas(pathname):
     elif pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
         return render_panel_individual(nombre_alumno)
-    elif pathname == '/pruebadeFuncionalidad':
-        try:
-            return render_panel_pruebas()
-        except Exception as e:
-            return render_panel_pruebas_fallback(str(e))
     return html.Div("404 - Ruta no válida")
 
 # Callback asíncrono para cargar el diagnóstico de IA
@@ -790,11 +690,11 @@ def cargar_diagnostico_ia(pathname):
     
     df = obtener_datos_procesados()
     if df.empty:
-        return html.P("Base de datos no cargada.", style={'color': '#ff414d'})
+        return html.P("Base de datos no cargada.", style={'color': '#FF4D4D'})
         
     registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty:
-        return html.P("Estudiante no encontrado.", style={'color': '#ff414d'})
+        return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
         
     datos = registro.iloc[0]
     
@@ -845,13 +745,9 @@ def cargar_diagnostico_ia(pathname):
 @app.callback(
     [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options'),
      Output('trigger-inicial', 'disabled')],
-    [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')],
-    [State('url', 'pathname')]
+    [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
 )
-def manejar_filtros(n, carrera_sel, curso_sel, pathname):
-    if pathname == '/pruebadeFuncionalidad':
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
+def manejar_filtros(n, carrera_sel, curso_sel):
     df = obtener_datos_procesados()
     if df is None or df.empty: 
         return [], [], [], False
@@ -870,6 +766,21 @@ def manejar_filtros(n, carrera_sel, curso_sel, pathname):
     return op_carreras, op_cursos, op_grupos, True
 
 @app.callback(
+    [Output('main-container', 'className'),
+     Output('theme-toggle-btn', 'children')],
+    [Input('theme-toggle-btn', 'n_clicks')]
+)
+def toggle_theme(n_clicks):
+    if n_clicks is None:
+        n_clicks = 0
+    if n_clicks % 2 == 1:
+        # MODO CLARO
+        return 'light-theme', [get_svg_icon('moon'), "Modo Oscuro"]
+    else:
+        # MODO OSCURO
+        return 'dark-theme', [get_svg_icon('sun'), "Modo Claro"]
+
+@app.callback(
     [Output('grafico-pastel-general', 'figure'), 
      Output('grafico-barras-general', 'figure'), 
      Output('tabla-alumnos-container', 'children'), 
@@ -883,17 +794,15 @@ def manejar_filtros(n, carrera_sel, curso_sel, pathname):
     [Input('carrera-dropdown', 'value'), 
      Input('curso-dropdown', 'value'), 
      Input('grupo-dropdown', 'value'),
-     Input('busqueda-input', 'value')],
+     Input('busqueda-input', 'value'),
+     Input('main-container', 'className')],
     [State('carrera-dropdown', 'options'),
      State('url', 'pathname')]
 )
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, options_carrera, pathname):
-    if pathname == '/pruebadeFuncionalidad':
-        return [dash.no_update] * 10
-
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_class, options_carrera, pathname):
     df = obtener_datos_procesados()
     if df is None or df.empty:
-        return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': '#888'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': '#00adb5', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
+        return {}, {}, html.Div("No hay registros nominales disponibles.", style={'color': 'var(--text-muted)'}), html.Div("Sincronizando base de datos global de Moodle...", style={'color': 'var(--accent-color)', 'fontWeight': 'bold'}), "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
 
     df_render = df.copy()
     if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
@@ -922,12 +831,12 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, option
                 
                 info_segmentacion = f"Segmentación: {carrera_name} | Ingreso: {anio} | Cuatrimestre: {cuatrimestre} | Estatus: {recursamiento_text}"
                 mensaje_segmentacion = html.Div(info_segmentacion, style={
-                    'color': '#00adb5', 
+                    'color': 'var(--accent-color)', 
                     'fontWeight': '600', 
-                    'backgroundColor': 'rgba(0,173,181,0.08)', 
+                    'backgroundColor': 'rgba(0, 168, 89, 0.08)', 
                     'padding': '12px', 
                     'borderRadius': '8px', 
-                    'border': '1px solid rgba(0,173,181,0.18)',
+                    'border': '1px solid rgba(0, 168, 89, 0.18)',
                     'display': 'inline-block',
                     'fontSize': '14px'
                 })
@@ -946,41 +855,60 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, option
 
     df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo (<6.0)')
     
+    is_light = (theme_class == 'light-theme')
+    plotly_template = 'plotly_white' if is_light else 'plotly_dark'
+    text_color = '#1B265B' if is_light else '#ffffff'
+    grid_color = '#e2e8f0' if is_light else '#2d2d2d'
+
     # Gráfico de pastel
-    fig_pie = px.pie(df_render, names='Estatus', title="Distribución de Estatus Académico", color='Estatus',
-                     color_discrete_map={'Aprobado (>=6.0)': '#00adb5', 'Riesgo (<6.0)': '#ff414d'}, template='plotly_dark')
+    fig_pie = px.pie(
+        df_render, 
+        names='Estatus', 
+        title="Distribución de Estatus Académico", 
+        color='Estatus',
+        color_discrete_map={'Aprobado (>=6.0)': '#00A859', 'Riesgo (<6.0)': '#FF4D4D'},
+        template=plotly_template
+    )
     fig_pie.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(t=50, b=20, l=20, r=20),
-        font=dict(family="Outfit, sans-serif")
+        font=dict(family="Outfit, sans-serif", color=text_color)
     )
     
     # Gráfico de barras
-    fig_bar = px.bar(df_render, x='nombre_alumno', y='calificacion_final', title="Calificaciones Finales", template='plotly_dark')
+    fig_bar = px.bar(
+        df_render, 
+        x='nombre_alumno', 
+        y='calificacion_final', 
+        title="Calificaciones Finales", 
+        template=plotly_template
+    )
     fig_bar.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(t=50, b=20, l=20, r=20),
-        font=dict(family="Outfit, sans-serif"),
+        font=dict(family="Outfit, sans-serif", color=text_color),
         xaxis_title="Estudiante",
         yaxis_title="Calificación Final",
+        xaxis=dict(showgrid=False, linecolor=grid_color),
+        yaxis=dict(gridcolor=grid_color, linecolor=grid_color),
         clickmode='event+select'
     )
-    fig_bar.update_traces(marker_color='#00adb5')
+    fig_bar.update_traces(marker_color='#00A859')
 
     # Contenedor nominal de alumnos matriculados
     elementos_tabla = []
     for _, fila in df_render.iterrows():
         nombre = fila['nombre_alumno']
         elementos_tabla.append(
-            html.Div(className='student-row', style={'padding': '12px 16px', 'borderBottom': '1px solid #2d2d2d', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'backgroundColor': '#151515', 'borderRadius': '6px', 'marginBottom': '4px'}, children=[
+            html.Div(className='student-row', style={'padding': '12px 16px', 'borderBottom': '1px solid var(--border-color)', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'backgroundColor': 'var(--card-bg)', 'borderRadius': '6px', 'marginBottom': '4px'}, children=[
                 dcc.Link(nombre, href=f"/alumno/{urllib.parse.quote(nombre)}", className='student-link'),
-                html.Span(f"{fila['calificacion_final']:.1f} pts", style={'color': '#ffffff', 'fontWeight': 'bold', 'fontSize': '14px'})
+                html.Span(f"{fila['calificacion_final']:.1f} pts", style={'color': 'var(--text-color)', 'fontWeight': 'bold', 'fontSize': '14px'})
             ])
         )
 
-    contenedor_lista = html.Div(elementos_tabla, style={'maxHeight': '400px', 'overflowY': 'auto', 'backgroundColor': '#121212', 'borderRadius': '8px', 'padding': '10px', 'border': '1px solid #2d2d2d'})
+    contenedor_lista = html.Div(elementos_tabla, style={'maxHeight': '400px', 'overflowY': 'auto', 'backgroundColor': 'var(--bg-color)', 'borderRadius': '8px', 'padding': '10px', 'border': '1px solid var(--border-color)'})
     
     return (fig_pie, fig_bar, contenedor_lista, mensaje_segmentacion, 
             str(total_estudiantes), f"{promedio_gral:.1f}", 
