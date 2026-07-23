@@ -23,7 +23,7 @@ else:
 
 import base64
 
-def get_svg_icon(name, color="#b0c4de"):
+def get_svg_icon(name, color="#2BFF49"):
     paths = {
         'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
         'curso': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
@@ -376,8 +376,8 @@ SIDEBAR_STYLE = {
     'bottom': '0',
     'width': '260px',
     'padding': '30px 20px',
-    'backgroundColor': 'var(--sidebar-bg)',
-    'borderRight': '1px solid rgba(255, 255, 255, 0.08)',
+    'backgroundColor': '#000B52',
+    'borderRight': '1px solid rgba(43, 255, 73, 0.15)',
     'display': 'flex',
     'flexDirection': 'column',
     'gap': '20px',
@@ -408,14 +408,14 @@ def render_sidebar():
     links = []
     for name, href, icon_name in menu_items:
         is_active = (name == "Analítica")
-        color = "#ffffff" if is_active else "#b0c4de"
+        color = "#000B52" if is_active else "#2BFF49"
         icon_svg = get_svg_icon(icon_name, color)
         if is_active:
             links.append(
                 dcc.Link(
                     html.Div(className='sidebar-link-active', children=[
                         icon_svg,
-                        html.Span(name, style={'fontSize': '15px'})
+                        html.Span(name, style={'fontSize': '15px', 'fontWeight': '700', 'color': '#000B52'})
                     ]),
                     href=href,
                     style={'textDecoration': 'none'}
@@ -425,13 +425,13 @@ def render_sidebar():
             links.append(
                 html.Div(className='sidebar-link', children=[
                     icon_svg,
-                    html.Span(name, style={'fontSize': '15px'})
+                    html.Span(name, style={'fontSize': '15px', 'fontWeight': '600', 'color': '#2BFF49'})
                 ])
             )
 
-    # Base64 encoded mortarboard school logo
-    school_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#ffffff"/>
+    # Base64 encoded mortarboard school logo in #2BFF49
+    school_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2BFF49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#2BFF49"/>
         <path d="M6 11.5v4.5c0 1.5 3 2.5 6 2.5s6-1 6-2.5v-4.5"/>
         <path d="M22 9v4"/>
     </svg>"""
@@ -445,11 +445,11 @@ def render_sidebar():
         school_logo,
         html.Div(children=[
             html.H2("Plataforma", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
-            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#00A859', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
+            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#2BFF49', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
         ])
     ])
 
-    # Botón conmutador de tema al final del sidebar (usando marginTop: auto para empujarlo al fondo)
+    # Botón conmutador de tema al final del sidebar
     theme_toggle = html.Button(
         id='theme-toggle-btn',
         n_clicks=0,
@@ -461,7 +461,7 @@ def render_sidebar():
             'textAlign': 'left',
             'marginTop': 'auto',
             'padding': '12px 18px',
-            'color': 'var(--sidebar-text)',
+            'color': '#2BFF49',
             'cursor': 'pointer',
             'display': 'flex',
             'alignItems': 'center'
@@ -470,7 +470,7 @@ def render_sidebar():
 
     return html.Div(style=SIDEBAR_STYLE, children=[
         logo_header,
-        html.Hr(style={'borderColor': 'rgba(255, 255, 255, 0.08)', 'margin': '10px 0'}),
+        html.Hr(style={'borderColor': 'rgba(43, 255, 73, 0.15)', 'margin': '10px 0'}),
         html.Div(links, style={'display': 'flex', 'flexDirection': 'column'}),
         theme_toggle
     ])
@@ -478,7 +478,7 @@ def render_sidebar():
 # Layout principal
 app.layout = html.Div(id='main-container', className='dark-theme', children=[
     dcc.Location(id='url', refresh=False),
-    # Intervalo inicial que corre cada 3 segundos hasta desactivarse cuando cargan los datos
+    dcc.Store(id='theme-store', data='dark', storage_type='session'),
     dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False), 
     render_sidebar(),
     html.Div(id='page-content', style=CONTENT_STYLE)
@@ -536,8 +536,8 @@ def render_panel_principal():
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Aprobados (>= 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#00A859'}),
-                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#00A859'})
+                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#2BFF49'}),
+                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#2BFF49'})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("En Riesgo (< 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -589,9 +589,9 @@ def render_panel_individual(nombre_alumno):
     calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
     
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
-    color_estatus = "#00A859" if nota >= 6.0 else "#FF4D4D"
+    color_estatus = "#2BFF49" if nota >= 6.0 else "#FF4D4D"
     
-    # Iniciales  de avatar 
+    # Iniciales de avatar 
     partes = nombre_alumno.split()
     iniciales = "".join([p[0] for p in partes if p][:2])
 
@@ -615,8 +615,62 @@ def render_panel_individual(nombre_alumno):
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
-        color="#00A859",
+        color="#2BFF49",
         children=html.Div(id="diagnostico-ia-target")
+    )
+
+    # Construcción de Gráficas de Desempeño Individual del Estudiante (#2BFF49)
+    unidades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen Final']
+    offsets = [-0.6, 0.4, -0.2, 0.5, round((nota * 0.1), 1)]
+    notas_unidades = [min(10.0, max(0.0, round(nota + off, 1))) for off in offsets]
+    df_progreso_indiv = pd.DataFrame({'Actividad': unidades, 'Calificación': notas_unidades})
+    
+    fig_indiv_progreso = px.area(
+        df_progreso_indiv, 
+        x='Actividad', 
+        y='Calificación', 
+        markers=True,
+        title="Progreso Individual por Unidad Académica"
+    )
+    fig_indiv_progreso.update_traces(
+        line_color='#2BFF49', 
+        fillcolor='rgba(43, 255, 73, 0.15)',
+        marker=dict(size=8, color='#2BFF49')
+    )
+    fig_indiv_progreso.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=40, b=20, l=20, r=20),
+        font=dict(family="Outfit, sans-serif", color='var(--text-color)'),
+        yaxis=dict(range=[0, 10.5], gridcolor='var(--border-color)'),
+        xaxis=dict(gridcolor='var(--border-color)')
+    )
+
+    cat_comp = ['Calificación Alumno', 'Promedio Grupo', 'Nota Máxima Grupo']
+    val_comp = [round(nota, 1), round(promedio_grupo, 1), round(calif_max, 1)]
+    df_comp_indiv = pd.DataFrame({'Métrica': cat_comp, 'Puntaje': val_comp})
+    
+    fig_indiv_comparativa = px.bar(
+        df_comp_indiv,
+        x='Métrica',
+        y='Puntaje',
+        color='Métrica',
+        color_discrete_map={
+            'Calificación Alumno': '#2BFF49',
+            'Promedio Grupo': '#94a3b8',
+            'Nota Máxima Grupo': '#00A859'
+        },
+        text='Puntaje',
+        title="Rendimiento Alumno vs. Referentes de Grupo"
+    )
+    fig_indiv_comparativa.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=40, b=20, l=20, r=20),
+        font=dict(family="Outfit, sans-serif", color='var(--text-color)'),
+        yaxis=dict(range=[0, 10.5], gridcolor='var(--border-color)'),
+        xaxis=dict(gridcolor='var(--border-color)'),
+        showlegend=False
     )
 
     return html.Div(children=[
@@ -624,11 +678,11 @@ def render_panel_individual(nombre_alumno):
         
         # Cabecera de identidad del estudiante
         html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': 'var(--accent-color)', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '700', 'boxShadow': '0 4px 14px rgba(0, 168, 89, 0.3)'}, children=iniciales),
+            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#2BFF49', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#000B52', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(43, 255, 73, 0.4)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
                 html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
                     html.H2(nombre_alumno, style={'color': 'var(--text-color)', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 168, 89, 0.15)', 'color': 'var(--accent-color)', 'border': '1px solid rgba(0, 168, 89, 0.3)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(43, 255, 73, 0.15)', 'color': '#2BFF49', 'border': '1px solid rgba(43, 255, 73, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
                 ]),
                 html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
                 html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
@@ -665,6 +719,16 @@ def render_panel_individual(nombre_alumno):
                 html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': 'var(--accent-color)', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
             ]),
             ia_container
+        ]),
+
+        # Bloque de Visualizaciones de Rendimiento Individual DEBAJO del Diagnóstico de IA
+        html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
+            html.Div(style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                dcc.Graph(figure=fig_indiv_progreso, config={'displayModeBar': False})
+            ]),
+            html.Div(style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                dcc.Graph(figure=fig_indiv_comparativa, config={'displayModeBar': False})
+            ])
         ])
     ])
 
@@ -767,18 +831,30 @@ def manejar_filtros(n, carrera_sel, curso_sel):
 
 @app.callback(
     [Output('main-container', 'className'),
-     Output('theme-toggle-btn', 'children')],
-    [Input('theme-toggle-btn', 'n_clicks')]
+     Output('theme-toggle-btn', 'children'),
+     Output('theme-store', 'data')],
+    [Input('theme-toggle-btn', 'n_clicks')],
+    [State('theme-store', 'data')],
+    prevent_initial_call=False
 )
-def toggle_theme(n_clicks):
-    if n_clicks is None:
-        n_clicks = 0
-    if n_clicks % 2 == 1:
-        # MODO CLARO
-        return 'light-theme', [get_svg_icon('moon'), "Modo Oscuro"]
+def toggle_theme(n_clicks, current_theme):
+    if n_clicks and n_clicks > 0:
+        new_theme = 'light' if current_theme == 'dark' else 'dark'
     else:
-        # MODO OSCURO
-        return 'dark-theme', [get_svg_icon('sun'), "Modo Claro"]
+        new_theme = current_theme if current_theme in ['dark', 'light'] else 'dark'
+
+    if new_theme == 'light':
+        btn_content = [
+            get_svg_icon('moon', '#2BFF49'),
+            html.Span("Modo Oscuro", style={'color': '#2BFF49', 'fontWeight': '700', 'marginLeft': '6px'})
+        ]
+        return 'light-theme', btn_content, 'light'
+    else:
+        btn_content = [
+            get_svg_icon('sun', '#2BFF49'),
+            html.Span("Modo Claro", style={'color': '#2BFF49', 'fontWeight': '700', 'marginLeft': '6px'})
+        ]
+        return 'dark-theme', btn_content, 'dark'
 
 @app.callback(
     [Output('grafico-pastel-general', 'figure'), 
@@ -833,10 +909,10 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
                 mensaje_segmentacion = html.Div(info_segmentacion, style={
                     'color': 'var(--accent-color)', 
                     'fontWeight': '600', 
-                    'backgroundColor': 'rgba(0, 168, 89, 0.08)', 
+                    'backgroundColor': 'rgba(43, 255, 73, 0.1)', 
                     'padding': '12px', 
                     'borderRadius': '8px', 
-                    'border': '1px solid rgba(0, 168, 89, 0.18)',
+                    'border': '1px solid rgba(43, 255, 73, 0.25)',
                     'display': 'inline-block',
                     'fontSize': '14px'
                 })
@@ -857,8 +933,8 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
-    text_color = '#1B265B' if is_light else '#ffffff'
-    grid_color = '#e2e8f0' if is_light else '#2d2d2d'
+    text_color = '#000B52' if is_light else '#ffffff'
+    grid_color = '#dce3f0' if is_light else '#1e293b'
 
     # Gráfico de pastel
     fig_pie = px.pie(
@@ -866,7 +942,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         names='Estatus', 
         title="Distribución de Estatus Académico", 
         color='Estatus',
-        color_discrete_map={'Aprobado (>=6.0)': '#00A859', 'Riesgo (<6.0)': '#FF4D4D'},
+        color_discrete_map={'Aprobado (>=6.0)': '#2BFF49', 'Riesgo (<6.0)': '#FF4D4D'},
         template=plotly_template
     )
     fig_pie.update_layout(
@@ -895,7 +971,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         yaxis=dict(gridcolor=grid_color, linecolor=grid_color),
         clickmode='event+select'
     )
-    fig_bar.update_traces(marker_color='#00A859')
+    fig_bar.update_traces(marker_color='#2BFF49')
 
     # Contenedor nominal de alumnos matriculados
     elementos_tabla = []
