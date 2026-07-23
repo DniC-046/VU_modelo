@@ -23,7 +23,10 @@ else:
 
 import base64
 
-def get_svg_icon(name, color="#00A859"):
+# Constante de Color Verde Institucional homologado (extraído del avatar/badge del estudiante)
+COLOR_VERDE_INSTITUCIONAL = "#00A859"
+
+def get_svg_icon(name, color=COLOR_VERDE_INSTITUCIONAL):
     paths = {
         'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
         'curso': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
@@ -408,7 +411,7 @@ def render_sidebar():
     links = []
     for name, href, icon_name in menu_items:
         is_active = (name == "Analítica")
-        color = "#ffffff" if is_active else "#00A859"
+        color = "#ffffff" if is_active else COLOR_VERDE_INSTITUCIONAL
         icon_svg = get_svg_icon(icon_name, color)
         if is_active:
             links.append(
@@ -425,13 +428,13 @@ def render_sidebar():
             links.append(
                 html.Div(className='sidebar-link', children=[
                     icon_svg,
-                    html.Span(name, style={'fontSize': '15px', 'fontWeight': '600', 'color': '#00A859'})
+                    html.Span(name, style={'fontSize': '15px', 'fontWeight': '600', 'color': COLOR_VERDE_INSTITUCIONAL})
                 ])
             )
 
-    # Base64 encoded mortarboard school logo in #00A859
-    school_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#00A859" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#00A859"/>
+    # Base64 encoded mortarboard school logo in COLOR_VERDE_INSTITUCIONAL
+    school_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{COLOR_VERDE_INSTITUCIONAL}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="{COLOR_VERDE_INSTITUCIONAL}"/>
         <path d="M6 11.5v4.5c0 1.5 3 2.5 6 2.5s6-1 6-2.5v-4.5"/>
         <path d="M22 9v4"/>
     </svg>"""
@@ -445,7 +448,7 @@ def render_sidebar():
         school_logo,
         html.Div(children=[
             html.H2("Plataforma", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#ffffff', 'letterSpacing': '0.5px', 'lineHeight': '1.1'}),
-            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': '#00A859', 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
+            html.H2("Virtual UTTEC", style={'margin': '0', 'fontSize': '16px', 'fontWeight': '800', 'color': COLOR_VERDE_INSTITUCIONAL, 'letterSpacing': '0.5px', 'lineHeight': '1.1'})
         ])
     ])
 
@@ -461,7 +464,7 @@ def render_sidebar():
             'textAlign': 'left',
             'marginTop': 'auto',
             'padding': '12px 18px',
-            'color': '#00A859',
+            'color': COLOR_VERDE_INSTITUCIONAL,
             'cursor': 'pointer',
             'display': 'flex',
             'alignItems': 'center'
@@ -536,8 +539,8 @@ def render_panel_principal():
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Aprobados (>= 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#008000'}),
-                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#008000'})
+                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': COLOR_VERDE_INSTITUCIONAL}),
+                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': COLOR_VERDE_INSTITUCIONAL})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("En Riesgo (< 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -589,7 +592,7 @@ def render_panel_individual(nombre_alumno):
     calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
     
     estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
-    color_estatus = "#00A859" if nota >= 6.0 else "#FF4D4D"
+    color_estatus = COLOR_VERDE_INSTITUCIONAL if nota >= 6.0 else "#FF4D4D"
     
     # Iniciales de avatar 
     partes = nombre_alumno.split()
@@ -615,11 +618,11 @@ def render_panel_individual(nombre_alumno):
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
-        color="#00A859",
+        color=COLOR_VERDE_INSTITUCIONAL,
         children=html.Div(id="diagnostico-ia-target")
     )
 
-    # Construcción de Gráficas de Desempeño Individual del Estudiante (#00A859)
+    # Construcción de Gráficas de Desempeño Individual del Estudiante (COLOR_VERDE_INSTITUCIONAL)
     unidades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen Final']
     offsets = [-0.6, 0.4, -0.2, 0.5, round((nota * 0.1), 1)]
     notas_unidades = [min(10.0, max(0.0, round(nota + off, 1))) for off in offsets]
@@ -633,9 +636,9 @@ def render_panel_individual(nombre_alumno):
         title="Progreso Individual por Unidad Académica"
     )
     fig_indiv_progreso.update_traces(
-        line_color='#00A859', 
+        line_color=COLOR_VERDE_INSTITUCIONAL, 
         fillcolor='rgba(0, 168, 89, 0.15)',
-        marker=dict(size=8, color='#00A859')
+        marker=dict(size=8, color=COLOR_VERDE_INSTITUCIONAL)
     )
     fig_indiv_progreso.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -656,7 +659,7 @@ def render_panel_individual(nombre_alumno):
         y='Puntaje',
         color='Métrica',
         color_discrete_map={
-            'Calificación Alumno': '#00A859',
+            'Calificación Alumno': COLOR_VERDE_INSTITUCIONAL,
             'Promedio Grupo': '#94a3b8',
             'Nota Máxima Grupo': '#002B66'
         },
@@ -678,11 +681,11 @@ def render_panel_individual(nombre_alumno):
         
         # Cabecera de identidad del estudiante
         html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#00A859', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(0, 168, 89, 0.35)'}, children=iniciales),
+            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': COLOR_VERDE_INSTITUCIONAL, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(0, 168, 89, 0.35)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
                 html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
                     html.H2(nombre_alumno, style={'color': 'var(--text-color)', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 168, 89, 0.15)', 'color': '#00A859', 'border': '1px solid rgba(0, 168, 89, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 168, 89, 0.15)', 'color': COLOR_VERDE_INSTITUCIONAL, 'border': '1px solid rgba(0, 168, 89, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
                 ]),
                 html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
                 html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
@@ -845,14 +848,14 @@ def toggle_theme(n_clicks, current_theme):
 
     if new_theme == 'light':
         btn_content = [
-            get_svg_icon('moon', '#00A859'),
-            html.Span("Modo Oscuro", style={'color': '#00A859', 'fontWeight': '700', 'marginLeft': '6px'})
+            get_svg_icon('moon', COLOR_VERDE_INSTITUCIONAL),
+            html.Span("Modo Oscuro", style={'color': COLOR_VERDE_INSTITUCIONAL, 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'light-theme', btn_content, 'light'
     else:
         btn_content = [
-            get_svg_icon('sun', '#00A859'),
-            html.Span("Modo Claro", style={'color': '#00A859', 'fontWeight': '700', 'marginLeft': '6px'})
+            get_svg_icon('sun', COLOR_VERDE_INSTITUCIONAL),
+            html.Span("Modo Claro", style={'color': COLOR_VERDE_INSTITUCIONAL, 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'dark-theme', btn_content, 'dark'
 
@@ -942,7 +945,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         names='Estatus', 
         title="Distribución de Estatus Académico", 
         color='Estatus',
-        color_discrete_map={'Aprobado (>=6.0)': '#008000', 'Riesgo (<6.0)': '#FF4D4D'},
+        color_discrete_map={'Aprobado (>=6.0)': COLOR_VERDE_INSTITUCIONAL, 'Riesgo (<6.0)': '#FF4D4D'},
         template=plotly_template
     )
     fig_pie.update_layout(
@@ -958,6 +961,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         x='nombre_alumno', 
         y='calificacion_final', 
         title="Calificaciones Finales", 
+        color_discrete_sequence=[COLOR_VERDE_INSTITUCIONAL],
         template=plotly_template
     )
     fig_bar.update_layout(
@@ -971,7 +975,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         yaxis=dict(gridcolor=grid_color, linecolor=grid_color),
         clickmode='event+select'
     )
-    fig_bar.update_traces(marker_color='#008000')
+    fig_bar.update_traces(marker_color=COLOR_VERDE_INSTITUCIONAL)
 
     # Contenedor nominal de alumnos matriculados
     elementos_tabla = []
