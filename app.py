@@ -960,7 +960,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         color='Estatus',
         color_discrete_map={
             'Riesgo (<6.0)': '#FF4D4D',
-            'Aprobado (>=6.0)': '#008000'
+            'Aprobado (>=6.0)': '#009E49'
         },
         template=plotly_template
     )
