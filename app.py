@@ -23,7 +23,7 @@ else:
 
 import base64
 
-def get_svg_icon(name, color="#2BFF49"):
+def get_svg_icon(name, color="#008000"):
     paths = {
         'home': '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
         'curso': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
@@ -429,9 +429,9 @@ def render_sidebar():
                 ])
             )
 
-    # Base64 encoded mortarboard school logo in #2BFF49
+    # Base64 encoded mortarboard school logo in #008000
     school_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#2BFF49" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#2BFF49"/>
+        <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="#008000"/>
         <path d="M6 11.5v4.5c0 1.5 3 2.5 6 2.5s6-1 6-2.5v-4.5"/>
         <path d="M22 9v4"/>
     </svg>"""
@@ -461,7 +461,7 @@ def render_sidebar():
             'textAlign': 'left',
             'marginTop': 'auto',
             'padding': '12px 18px',
-            'color': '#2BFF49',
+            'color': '#008000',
             'cursor': 'pointer',
             'display': 'flex',
             'alignItems': 'center'
@@ -536,8 +536,8 @@ def render_panel_principal():
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Aprobados (>= 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
-                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#2BFF49'}),
-                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#2BFF49'})
+                html.H3(id='metric-aprobados', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': '#008000'}),
+                html.P(id='metric-aprobados-pct', children="0% del total", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': '#008000'})
             ]),
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("En Riesgo (< 6.0)", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -615,7 +615,7 @@ def render_panel_individual(nombre_alumno):
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
-        color="#2BFF49",
+        color="#008000",
         children=html.Div(id="diagnostico-ia-target")
     )
 
@@ -635,7 +635,7 @@ def render_panel_individual(nombre_alumno):
     fig_indiv_progreso.update_traces(
         line_color='#2BFF49', 
         fillcolor='rgba(43, 255, 73, 0.15)',
-        marker=dict(size=8, color='#2BFF49')
+        marker=dict(size=8, color='#008000')
     )
     fig_indiv_progreso.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
@@ -657,8 +657,8 @@ def render_panel_individual(nombre_alumno):
         color='Métrica',
         color_discrete_map={
             'Calificación Alumno': '#2BFF49',
-            'Promedio Grupo': '#94a3b8',
-            'Nota Máxima Grupo': '#00A859'
+            'Promedio Grupo': '#004700',
+            'Nota Máxima Grupo': '#00A300'
         },
         text='Puntaje',
         title="Rendimiento Alumno vs. Referentes de Grupo"
@@ -678,11 +678,11 @@ def render_panel_individual(nombre_alumno):
         
         # Cabecera de identidad del estudiante
         html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#2BFF49', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#000B52', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(43, 255, 73, 0.4)'}, children=iniciales),
+            html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': '#008000', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#000B52', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(43, 255, 73, 0.4)'}, children=iniciales),
             html.Div(style={'flex': '1'}, children=[
                 html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
                     html.H2(nombre_alumno, style={'color': 'var(--text-color)', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(43, 255, 73, 0.15)', 'color': '#2BFF49', 'border': '1px solid rgba(43, 255, 73, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    html.Span("ACTIVO", style={'backgroundColor': 'rgba(43, 255, 73, 0.15)', 'color': '#008000', 'border': '1px solid rgba(43, 255, 73, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
                 ]),
                 html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
                 html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
@@ -846,13 +846,13 @@ def toggle_theme(n_clicks, current_theme):
     if new_theme == 'light':
         btn_content = [
             get_svg_icon('moon', '#2BFF49'),
-            html.Span("Modo Oscuro", style={'color': '#2BFF49', 'fontWeight': '700', 'marginLeft': '6px'})
+            html.Span("Modo Oscuro", style={'color': '#008000', 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'light-theme', btn_content, 'light'
     else:
         btn_content = [
             get_svg_icon('sun', '#2BFF49'),
-            html.Span("Modo Claro", style={'color': '#2BFF49', 'fontWeight': '700', 'marginLeft': '6px'})
+            html.Span("Modo Claro", style={'color': '#008000', 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'dark-theme', btn_content, 'dark'
 
@@ -942,7 +942,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         names='Estatus', 
         title="Distribución de Estatus Académico", 
         color='Estatus',
-        color_discrete_map={'Aprobado (>=6.0)': '#2BFF49', 'Riesgo (<6.0)': '#FF4D4D'},
+        color_discrete_map={'Aprobado (>=6.0)': '#008000', 'Riesgo (<6.0)': '#FF4D4D'},
         template=plotly_template
     )
     fig_pie.update_layout(
@@ -971,7 +971,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         yaxis=dict(gridcolor=grid_color, linecolor=grid_color),
         clickmode='event+select'
     )
-    fig_bar.update_traces(marker_color='#2BFF49')
+    fig_bar.update_traces(marker_color='#008000')
 
     # Contenedor nominal de alumnos matriculados
     elementos_tabla = []
