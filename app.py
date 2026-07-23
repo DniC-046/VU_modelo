@@ -509,15 +509,15 @@ def render_panel_principal():
         }, children=[
             html.Div(style={'flex': '1'}, children=[
                 html.Label("División / Carrera:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...", style={'color': '#000000'})
+                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...")
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Curso Moodle:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...", style={'color': '#000000'})
+                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...")
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", style={'color': '#000000'})
+                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...")
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
@@ -567,7 +567,12 @@ def render_panel_principal():
         ])
     ])
 
-def render_panel_individual(nombre_alumno):
+def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
+    is_light = (theme_class == 'light-theme')
+    plotly_template = 'plotly_white' if is_light else 'plotly_dark'
+    text_color = '#000B52' if is_light else '#ffffff'
+    grid_color = '#dce3f0' if is_light else '#1e293b'
+
     df = obtener_datos_procesados()
     if df.empty: 
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
@@ -635,7 +640,8 @@ def render_panel_individual(nombre_alumno):
         x='Actividad', 
         y='Calificación', 
         markers=True,
-        title="Progreso Individual por Unidad Académica"
+        title="Progreso Individual por Unidad Académica",
+        template=plotly_template
     )
     fig_indiv_progreso.update_traces(
         line_color=COLOR_VERDE_BANDERA, 
@@ -646,9 +652,9 @@ def render_panel_individual(nombre_alumno):
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(t=40, b=20, l=20, r=20),
-        font=dict(family="Outfit, sans-serif", color='var(--text-color)'),
-        yaxis=dict(range=[0, 10.5], gridcolor='var(--border-color)'),
-        xaxis=dict(gridcolor='var(--border-color)')
+        font=dict(family="Outfit, sans-serif", color=text_color),
+        yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
+        xaxis=dict(gridcolor=grid_color)
     )
 
     cat_comp = ['Calificación Alumno', 'Promedio Grupo', 'Nota Máxima Grupo']
@@ -662,19 +668,20 @@ def render_panel_individual(nombre_alumno):
         color='Métrica',
         color_discrete_map={
             'Calificación Alumno': COLOR_VERDE_BANDERA,
-            'Promedio Grupo': '#94a3b8',
-            'Nota Máxima Grupo': '#002B66'
+            'Promedio Grupo': '#94a3b8' if is_light else '#64748b',
+            'Nota Máxima Grupo': '#000B52' if is_light else '#002B66'
         },
         text='Puntaje',
-        title="Rendimiento Alumno vs. Referentes de Grupo"
+        title="Rendimiento Alumno vs. Referentes de Grupo",
+        template=plotly_template
     )
     fig_indiv_comparativa.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         margin=dict(t=40, b=20, l=20, r=20),
-        font=dict(family="Outfit, sans-serif", color='var(--text-color)'),
-        yaxis=dict(range=[0, 10.5], gridcolor='var(--border-color)'),
-        xaxis=dict(gridcolor='var(--border-color)'),
+        font=dict(family="Outfit, sans-serif", color=text_color),
+        yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
+        xaxis=dict(gridcolor=grid_color),
         showlegend=False
     )
 
@@ -737,13 +744,17 @@ def render_panel_individual(nombre_alumno):
         ])
     ])
 
-@app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
-def controlar_rutas(pathname):
+@app.callback(
+    Output('page-content', 'children'),
+    [Input('url', 'pathname'),
+     Input('main-container', 'className')]
+)
+def controlar_rutas(pathname, theme_class):
     if not pathname or pathname == '/': 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return render_panel_individual(nombre_alumno)
+        return render_panel_individual(nombre_alumno, theme_class)
     return html.Div("404 - Ruta no válida")
 
 # Callback asíncrono para cargar el diagnóstico de IA
@@ -791,21 +802,21 @@ def cargar_diagnostico_ia(pathname):
             # Columna izquierda: Riesgo y Predicción
             html.Div(style={'flex': '1', 'minWidth': '300px'}, children=[
                 html.Div(style={'marginBottom': '25px'}, children=[
-                    html.Label("Nivel de Riesgo de Deserción:", style={'display': 'block', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
+                    html.Label("Nivel de Riesgo de Deserción:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
                     html.Span(riesgo, className=badge_class),
-                    html.P(justificacion, style={'marginTop': '12px', 'color': '#e0e0e0', 'fontSize': '14px', 'lineHeight': '1.5'})
+                    html.P(justificacion, style={'marginTop': '12px', 'color': 'var(--text-color)', 'fontSize': '14px', 'lineHeight': '1.5'})
                 ]),
                 html.Div(children=[
-                    html.Label("Predicción de Rendimiento:", style={'display': 'block', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
-                    html.P(prediccion, style={'color': '#e0e0e0', 'fontSize': '14px', 'lineHeight': '1.5'})
+                    html.Label("Predicción de Rendimiento:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
+                    html.P(prediccion, style={'color': 'var(--text-color)', 'fontSize': '14px', 'lineHeight': '1.5'})
                 ])
             ]),
             
             # Columna derecha: Recomendaciones
-            html.Div(style={'flex': '1', 'minWidth': '300px', 'borderLeft': '1px solid #2d2d2d', 'paddingLeft': '30px'}, children=[
-                html.Label("Recomendaciones Pedagógicas:", style={'display': 'block', 'color': '#888888', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '12px'}),
+            html.Div(style={'flex': '1', 'minWidth': '300px', 'borderLeft': '1px solid var(--border-color)', 'paddingLeft': '30px'}, children=[
+                html.Label("Recomendaciones Pedagógicas:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '12px'}),
                 html.Ul([
-                    html.Li(r, style={'color': '#e0e0e0', 'fontSize': '14px', 'marginBottom': '10px', 'lineHeight': '1.4'}) for r in recomendaciones
+                    html.Li(r, style={'color': 'var(--text-color)', 'fontSize': '14px', 'marginBottom': '10px', 'lineHeight': '1.4'}) for r in recomendaciones
                 ], style={'paddingLeft': '20px', 'margin': '0'})
             ])
         ])
