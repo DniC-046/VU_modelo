@@ -861,14 +861,14 @@ def toggle_theme(n_clicks, current_theme):
 
     if new_theme == 'light':
         btn_content = [
-            get_svg_icon('moon', COLOR_VERDE_INSTITUCIONAL),
-            html.Span("Modo Oscuro", style={'color': COLOR_VERDE_INSTITUCIONAL, 'fontWeight': '700', 'marginLeft': '6px'})
+            get_svg_icon('moon', COLOR_VERDE_BANDERA),
+            html.Span("Modo Oscuro", style={'color': COLOR_VERDE_BANDERA, 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'light-theme', btn_content, 'light'
     else:
         btn_content = [
-            get_svg_icon('sun', COLOR_VERDE_INSTITUCIONAL),
-            html.Span("Modo Claro", style={'color': COLOR_VERDE_INSTITUCIONAL, 'fontWeight': '700', 'marginLeft': '6px'})
+            get_svg_icon('sun', COLOR_VERDE_BANDERA),
+            html.Span("Modo Claro", style={'color': COLOR_VERDE_BANDERA, 'fontWeight': '700', 'marginLeft': '6px'})
         ]
         return 'dark-theme', btn_content, 'dark'
 
@@ -960,7 +960,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         color='Estatus',
         color_discrete_map={
             'Riesgo (<6.0)': '#FF4D4D',
-            'Aprobado (>=6.0)': '#003B16'
+            'Aprobado (>=6.0)': '#008000'
         },
         template=plotly_template
     )
