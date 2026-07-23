@@ -958,10 +958,12 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         names='Estatus', 
         title="Distribución de Estatus Académico", 
         color='Estatus',
-        color_discrete_map={'Aprobado (>=6.0)': COLOR_VERDE_BANDERA, 'Riesgo (<6.0)': '#FF4D4D'},
+        color_discrete_map={
+            'Riesgo (<6.0)': '#FF4D4D',
+            'Aprobado (>=6.0)': '#008000'
+        },
         template=plotly_template
     )
-    fig_pie.update_traces(marker=dict(colors=[COLOR_VERDE_BANDERA, '#FF4D4D']))
     fig_pie.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
