@@ -1100,20 +1100,65 @@ def handle_login(n_clicks, username, auth_data):
         return dash.no_update, ""
     
     username = username.strip().lower()
+    token_moodle = os.environ.get("MOODLE_TOKEN")
     
-    # Cargar roles desde el JSON local
+    # 1. Obtener el ID del usuario
+    param_user = {
+        'wstoken': token_moodle,
+        'wsfunction': 'core_user_get_users_by_field',
+        'moodlewsrestformat': 'json',
+        'field': 'username',
+        'values[0]': username
+    }
+    
     try:
-        with open('usuarios_autorizados.json', 'r', encoding='utf-8') as f:
-            auth_db = json.load(f)
-    except FileNotFoundError:
-        return auth_data, "Error del sistema: Base de datos de roles no encontrada."
+        res_user = requests.get(URL_MOODLE, params=param_user, timeout=15).json()
         
-    if username in auth_db:
-        role = auth_db[username].get('rol')
-        new_auth = {'logged_in': True, 'role': role, 'username': username}
+        # Validar permisos del token
+        if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
+            error_msg = ("⚠️ Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
+                         "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
+            return auth_data, error_msg
+            
+        if not res_user or not isinstance(res_user, list) or len(res_user) == 0:
+            return auth_data, "El usuario no existe en la base de datos de Moodle."
+            
+        user_id = res_user[0].get('id')
+        
+        # 2. Consultar los roles del usuario en el curso principal (ej. ID 50)
+        param_roles = {
+            'wstoken': token_moodle,
+            'wsfunction': 'core_enrol_get_enrolled_users',
+            'moodlewsrestformat': 'json',
+            'courseid': 50 # Curso base para validación
+        }
+        
+        res_roles = requests.get(URL_MOODLE, params=param_roles, timeout=15).json()
+        
+        if isinstance(res_roles, dict) and res_roles.get('exception') == 'webservice_access_exception':
+            error_msg = ("⚠️ Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
+                         "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
+            return auth_data, error_msg
+            
+        # Buscar al usuario y evaluar sus roles
+        allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
+        role_assigned = 'student' # Por defecto
+        
+        if isinstance(res_roles, list):
+            for u in res_roles:
+                if u.get('id') == user_id:
+                    user_roles = [r.get('shortname') for r in u.get('roles', [])]
+                    for r in user_roles:
+                        if r in allowed_roles:
+                            role_assigned = r
+                            break
+                    break
+        
+        new_auth = {'logged_in': True, 'role': role_assigned, 'username': username}
         return new_auth, ""
-    else:
-        return auth_data, "Usuario no registrado."
+        
+    except requests.exceptions.RequestException as e:
+        return auth_data, f"Error de conexión con el servidor Moodle: {e}"
 
 @app.callback(
     Output('auth-store', 'data', allow_duplicate=True),
