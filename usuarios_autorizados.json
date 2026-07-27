@@ -1,0 +1,14 @@
+{
+  "admin": {
+    "rol": "manager",
+    "estado": "Autorizado"
+  },
+  "profesor": {
+    "rol": "editingteacher",
+    "estado": "Autorizado"
+  },
+  "alumno": {
+    "rol": "student",
+    "estado": "Acceso Denegado"
+  }
+}

@@ -484,9 +484,10 @@ def render_sidebar():
 app.layout = html.Div(id='main-container', className='dark-theme', children=[
     dcc.Location(id='url', refresh=False),
     dcc.Store(id='theme-store', data='dark', storage_type='session'),
+    dcc.Store(id='auth-store', data={'logged_in': False, 'role': None, 'username': None}, storage_type='session'),
     dcc.Interval(id='trigger-inicial', interval=3000, n_intervals=0, disabled=False), 
-    render_sidebar(),
-    html.Div(id='page-content', style=CONTENT_STYLE)
+    html.Div(id='sidebar-container', style={'display': 'none'}, children=[render_sidebar()]),
+    html.Div(id='page-content', style={'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'})
 ])
 
 def render_panel_principal():
@@ -744,12 +745,59 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
         ])
     ])
 
+def render_login_screen():
+    return html.Div(style={
+        'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'height': '100vh', 'backgroundColor': 'var(--bg-color)'
+    }, children=[
+        html.Div(style={
+            'backgroundColor': 'var(--card-bg)', 'padding': '40px', 'borderRadius': '12px', 'boxShadow': '0 8px 32px var(--shadow-color)',
+            'width': '100%', 'maxWidth': '400px', 'border': '1px solid var(--border-color)', 'textAlign': 'center'
+        }, children=[
+            html.H2("Analítica UTTEC", style={'color': 'var(--text-color)', 'marginBottom': '10px'}),
+            html.P("Inicie sesión para continuar", style={'color': 'var(--text-muted)', 'marginBottom': '30px'}),
+            dcc.Input(id='login-username', type='text', placeholder='Usuario institucional (ej. admin)', 
+                      style={'width': '100%', 'padding': '12px', 'marginBottom': '20px', 'borderRadius': '8px', 
+                             'border': '1px solid var(--border-color)', 'backgroundColor': 'var(--dropdown-bg)', 'color': 'var(--text-color)'}),
+            html.Button("Acceder", id='login-submit-btn', n_clicks=0,
+                        style={'width': '100%', 'padding': '12px', 'backgroundColor': COLOR_VERDE_BANDERA, 'color': 'white', 
+                               'border': 'none', 'borderRadius': '8px', 'fontWeight': 'bold', 'cursor': 'pointer', 'fontSize': '16px'}),
+            html.Div(id='login-error', style={'color': '#FF4D4D', 'marginTop': '15px', 'fontWeight': 'bold', 'minHeight': '20px'})
+        ])
+    ])
+
+def render_access_denied_screen(username):
+    return html.Div(style={
+        'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'height': '100vh', 'backgroundColor': 'var(--bg-color)'
+    }, children=[
+        html.Div(style={
+            'backgroundColor': 'var(--card-bg)', 'padding': '40px', 'borderRadius': '12px', 'boxShadow': '0 8px 32px var(--shadow-color)',
+            'width': '100%', 'maxWidth': '500px', 'border': '1px solid rgba(255, 77, 77, 0.3)', 'textAlign': 'center'
+        }, children=[
+            html.Div(style={'fontSize': '50px', 'marginBottom': '10px'}, children="🔒"),
+            html.H2("Acceso Denegado", style={'color': '#FF4D4D', 'marginBottom': '15px'}),
+            html.P(f"Usuario autenticado: {username}", style={'color': 'var(--text-color)', 'marginBottom': '10px', 'fontWeight': 'bold'}),
+            html.P("Esta plataforma está reservada exclusivamente para profesores con autoridad y/o Mánager.", 
+                   style={'color': 'var(--text-muted)', 'marginBottom': '30px', 'lineHeight': '1.5'}),
+            html.Button("Cerrar Sesión", id='logout-btn', n_clicks=0,
+                        style={'padding': '10px 20px', 'backgroundColor': 'var(--hover-bg)', 'color': 'var(--text-color)', 
+                               'border': '1px solid var(--border-color)', 'borderRadius': '8px', 'fontWeight': 'bold', 'cursor': 'pointer'})
+        ])
+    ])
+
 @app.callback(
     Output('page-content', 'children'),
     [Input('url', 'pathname'),
-     Input('main-container', 'className')]
+     Input('main-container', 'className'),
+     Input('auth-store', 'data')]
 )
-def controlar_rutas(pathname, theme_class):
+def controlar_rutas(pathname, theme_class, auth_data):
+    if not auth_data or not auth_data.get('logged_in'):
+        return render_login_screen()
+    
+    role = auth_data.get('role')
+    if role not in ['manager', 'editingteacher', 'teacher', 'coursecreator']:
+        return render_access_denied_screen(auth_data.get('username', 'Desconocido'))
+
     if not pathname or pathname == '/': 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
@@ -1025,6 +1073,56 @@ def redirigir_alumno(clickData, current_path):
             return f"/alumno/{urllib.parse.quote(nombre)}"
         except Exception as e:
             print(f"Error en redirección clickData: {e}")
+    return dash.no_update
+
+# Control de layout (Sidebar y Margen) según autenticación
+@app.callback(
+    [Output('sidebar-container', 'style'),
+     Output('page-content', 'style')],
+    [Input('auth-store', 'data')]
+)
+def update_layout_auth(auth_data):
+    if auth_data and auth_data.get('logged_in') and auth_data.get('role') in ['manager', 'editingteacher', 'teacher', 'coursecreator']:
+        return SIDEBAR_STYLE, CONTENT_STYLE
+    return {'display': 'none'}, {'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'}
+
+# Manejo de Login y Logout
+@app.callback(
+    [Output('auth-store', 'data', allow_duplicate=True),
+     Output('login-error', 'children')],
+    [Input('login-submit-btn', 'n_clicks')],
+    [State('login-username', 'value'),
+     State('auth-store', 'data')],
+    prevent_initial_call=True
+)
+def handle_login(n_clicks, username, auth_data):
+    if not n_clicks or not username:
+        return dash.no_update, ""
+    
+    username = username.strip().lower()
+    
+    # Cargar roles desde el JSON local
+    try:
+        with open('usuarios_autorizados.json', 'r', encoding='utf-8') as f:
+            auth_db = json.load(f)
+    except FileNotFoundError:
+        return auth_data, "Error del sistema: Base de datos de roles no encontrada."
+        
+    if username in auth_db:
+        role = auth_db[username].get('rol')
+        new_auth = {'logged_in': True, 'role': role, 'username': username}
+        return new_auth, ""
+    else:
+        return auth_data, "Usuario no registrado."
+
+@app.callback(
+    Output('auth-store', 'data', allow_duplicate=True),
+    [Input('logout-btn', 'n_clicks')],
+    prevent_initial_call=True
+)
+def handle_logout(n_clicks):
+    if n_clicks:
+        return {'logged_in': False, 'role': None, 'username': None}
     return dash.no_update
 
 if __name__ == '__main__':
