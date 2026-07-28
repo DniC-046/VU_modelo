@@ -14,7 +14,7 @@ import threading
 import time
 import re
 
-# Cargar variables de entorno 
+#Cargar variables de entorno 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     dotenv.load_dotenv(dotenv_path)
@@ -23,7 +23,7 @@ else:
 
 import base64
 
-# Constante de Color Verde Bandera Institucional mate (homologado #008000)
+# Constante 
 COLOR_VERDE_BANDERA = "#008000"
 
 def get_svg_icon(name, color=COLOR_VERDE_BANDERA):
@@ -57,7 +57,7 @@ def get_svg_icon(name, color=COLOR_VERDE_BANDERA):
         }
     )
 
-# Inicialización de la aplicación
+#inicialización de la aplicación
 app = dash.Dash(
     __name__, 
     title="Analítica UTTEC - Institucional", 
@@ -71,7 +71,7 @@ app.css.config.serve_locally = True
 server = app.server
 application = server  
 
-# Configuración del caché local
+#configuración del caché local
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'SimpleCache',
     'CACHE_DEFAULT_TIMEOUT': 300
@@ -80,7 +80,7 @@ cache = Cache(app.server, config={
 URL_MOODLE = os.environ.get("MOODLE_URL", "https://virtual2.uttecamac.edu.mx/webservice/rest/server.php")
 JSON_FILE_PATH = 'data_moodle.json'
 
-# Caché en memoria para evitar I/O constante en disco
+#caché en memoria para evitar I/O constante en disco
 _cached_df = pd.DataFrame()
 _cached_mtime = 0.0
 
@@ -102,7 +102,7 @@ def obtener_datos_moodle_live():
 
     lista_completa_alumnos = []
     try:
-        #  Obtener carreras
+        #obtener carreras
         param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
         res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=15)
         categorias = res_cat.json()
@@ -110,7 +110,7 @@ def obtener_datos_moodle_live():
             print("Error al obtener categorías de Moodle:", categorias)
             return pd.DataFrame()
 
-        # Obtener cursos
+        #obtener cursos
         param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
         res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
         cursos = res_cur.json()
@@ -134,7 +134,7 @@ def obtener_datos_moodle_live():
                     nombre_carrera = cat.get('name', '').strip().upper()
                     break
 
-            # Mapeo de  División para el Propedéutico DTICy los demás
+            #mapeo de  División para el Propedéutico DTICy los demás
             es_propedeutico_dtic = (course_id == 50 or 
                                     "DTIC-PROP-GRAL" in curso.get('shortname', '') or 
                                     "PROPEDÉUTICO DTIC" in nombre_curso.upper())
@@ -142,7 +142,7 @@ def obtener_datos_moodle_live():
             if es_propedeutico_dtic:
                 nombre_carrera = "DIVISIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN Y COMUNICACIÓN"
 
-            # Consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula numerosa como Propedéutico)
+            #consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula numerosa como Propedéutico)
             param_calif = {
                 'wstoken': token_moodle,
                 'wsfunction': 'gradereport_user_get_grades_table',
@@ -169,17 +169,17 @@ def obtener_datos_moodle_live():
                     for item in tabla_usuario.get('tabledata', []):
                         if not isinstance(item, dict): continue
                         
-                        # Extraer nombre del item de calificación
+                        #extraer nombre del item de calificación
                         itemname_dict = item.get('itemname', {})
                         itemname_content = itemname_dict.get('content', '') if isinstance(itemname_dict, dict) else ""
                         item_text = clean_moodle_html(itemname_content).lower()
                         
-                        # Extraer valor de la calificación
+                        #extraer valor de la calificación
                         grade_dict = item.get('grade', {})
                         grade_content = grade_dict.get('content', '') if isinstance(grade_dict, dict) else ""
                         grade_text = clean_moodle_html(grade_content)
 
-                        # Parsear nota final del curso
+                        #parsear nota final del curso
                         if 'total' in item_text or 'curso' in item_text:
                             try:
                                 if grade_text:
@@ -189,14 +189,14 @@ def obtener_datos_moodle_live():
                             except:
                                 nota_final = 0.0
 
-                        # Contabilizar puntuaciones para clasificación DSM vs IRD (Propedéutico)
+                        #contabilizar puntuaciones para clasificación DSM vs IRD (Propedéutico)
                         if es_propedeutico_dtic and grade_text and '-' not in grade_text:
                             if 'desarrollo' in item_text or 'dsm' in item_text:
                                 dsm_score += 1
                             elif 'redes' in item_text or 'cisco' in item_text or 'huawei' in item_text or 'ird' in item_text:
                                 ird_score += 1
 
-                    # segmentación de grupos para Propedéutico DTIC
+                    #segmentación de grupos para Propedéutico DTIC
                     grupo_detectado = "SIN GRUPO ASIGNADO"
                     if es_propedeutico_dtic:
                         if ird_score > dsm_score:
@@ -204,17 +204,17 @@ def obtener_datos_moodle_live():
                         elif dsm_score > ird_score:
                             es_dsm = True
                         else:
-                            # En caso de empate o sin entregas, clasificar por paridad del ID de usuario
+                            #en caso de empate o sin entregas, clasificar por paridad del ID de usuario
                             es_dsm = (userid % 2 == 0)
 
-                        # Asignar grupo de forma determinística: DSM 2024-3-X / IRD 2025-3-X
+                        #asignar grupo de forma determinística: DSM 2026-X / IRD 2026-X
                         h = sum(ord(char) for char in user_fullname)
                         recursamiento = 1 if h % 3 != 0 else 2  # 1: Ordinario, 2: Recursamiento
                         
                         if es_dsm:
-                            grupo_detectado = f"DSM 2024-3-{recursamiento}"
+                            grupo_detectado = f"DSM 2026-3-{recursamiento}"
                         else:
-                            grupo_detectado = f"IRD 2025-3-{recursamiento}"
+                            grupo_detectado = f"IRD 2026-3-{recursamiento}"
                     else:
                         if "-" in nombre_curso:
                             grupo_detectado = nombre_curso.split("-")[-1].strip().upper()
@@ -229,7 +229,7 @@ def obtener_datos_moodle_live():
                         'calificacion_final': nota_final
                     })
             except Exception as e:
-                # Omitir errores individuales para no interrumpir el flujo del pipeline
+                #omitir errores individuales para no interrumpir el flujo del pipeline
                 continue 
 
         return pd.DataFrame(lista_completa_alumnos)
@@ -286,7 +286,7 @@ def obtener_datos_procesados():
         print(f"Error al leer JSON local de caché: {e}")
         return _cached_df
 
-# Integración con la API de OpenAI (gpt-4o-mini)
+#Integración con la API de OpenAI
 @cache.memoize(timeout=3600)
 def obtener_diagnostico_ia(nombre_alumno, carrera, curso, grupo, calificacion_final):
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("CHATGPT_CONTRASEÑA")
@@ -434,7 +434,7 @@ def render_sidebar():
                 ])
             )
 
-    # Base64 encoded mortarboard school logo in COLOR_VERDE_BANDERA
+    # Base64 encoded mortarboard 
     school_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{COLOR_VERDE_BANDERA}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="12 2 22 8.5 12 15 2 8.5 12 2" fill="{COLOR_VERDE_BANDERA}"/>
         <path d="M6 11.5v4.5c0 1.5 3 2.5 6 2.5s6-1 6-2.5v-4.5"/>
@@ -480,7 +480,7 @@ def render_sidebar():
         theme_toggle
     ])
 
-# Layout principal
+#Layout principal
 app.layout = html.Div(id='main-container', className='dark-theme', children=[
     dcc.Location(id='url', refresh=False),
     dcc.Store(id='theme-store', data='dark', storage_type='session'),
@@ -492,7 +492,7 @@ app.layout = html.Div(id='main-container', className='dark-theme', children=[
 
 def render_panel_principal():
     return html.Div(children=[
-        # Encabezado limpio
+        #encabezado limpio
         html.Div(style={'borderBottom': '1px solid var(--border-color)', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
             html.H1("Analítica del curso", style={'margin': '0', 'color': 'var(--text-color)', 'fontWeight': '700', 'fontSize': '28px'}),
             html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': 'var(--text-muted)', 'fontSize': '14px'})
@@ -773,7 +773,7 @@ def render_access_denied_screen(username):
             'backgroundColor': 'var(--card-bg)', 'padding': '40px', 'borderRadius': '12px', 'boxShadow': '0 8px 32px var(--shadow-color)',
             'width': '100%', 'maxWidth': '500px', 'border': '1px solid rgba(255, 77, 77, 0.3)', 'textAlign': 'center'
         }, children=[
-            html.Div(style={'fontSize': '50px', 'marginBottom': '10px'}, children="🔒"),
+            html.Div(style={'fontSize': '50px', 'marginBottom': '10px'}, children=""),
             html.H2("Acceso Denegado", style={'color': '#FF4D4D', 'marginBottom': '15px'}),
             html.P(f"Usuario autenticado: {username}", style={'color': 'var(--text-color)', 'marginBottom': '10px', 'fontWeight': 'bold'}),
             html.P("Esta plataforma está reservada exclusivamente para profesores con autoridad y/o Mánager.", 
@@ -889,7 +889,19 @@ def manejar_filtros(n, carrera_sel, curso_sel):
 
     if curso_sel: 
         df_f = df_f[df_f['curso'] == curso_sel]
-    op_grupos = [{'label': g, 'value': g} for g in sorted(df_f['grupo'].unique())]
+    
+    # Procesar grupos asegurando tipo string y formateo explícito
+    op_grupos = []
+    for g in sorted(df_f['grupo'].dropna().unique(), key=lambda x: str(x)):
+        g_str = str(g).strip()
+        label_text = g_str
+        # Si el usuario quiere garantizar identificación del año 2026
+        if '2026' in g_str and 'Grupo' not in g_str and 'DSM' not in g_str and 'IRD' not in g_str:
+            label_text = f"Grupo {g_str}"
+        elif g_str.isnumeric() and g_str == '2026':
+            label_text = f"Ciclo {g_str}"
+            
+        op_grupos.append({'label': label_text, 'value': g_str})
 
     return op_carreras, op_cursos, op_grupos, True
 
@@ -1116,7 +1128,7 @@ def handle_login(n_clicks, username, auth_data):
         
         # Validar permisos del token
         if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
-            error_msg = ("⚠️ Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
+            error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
             return auth_data, error_msg
             
@@ -1136,7 +1148,7 @@ def handle_login(n_clicks, username, auth_data):
         res_roles = requests.get(URL_MOODLE, params=param_roles, timeout=15).json()
         
         if isinstance(res_roles, dict) and res_roles.get('exception') == 'webservice_access_exception':
-            error_msg = ("⚠️ Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
+            error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
             return auth_data, error_msg
             
