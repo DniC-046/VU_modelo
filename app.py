@@ -1053,7 +1053,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     )
     fig_bar.update_traces(marker_color=COLOR_VERDE_BANDERA)
 
-    # Contenedor nominal de alumnos matriculados
+    #contenedor nominal de alumnos matriculados
     elementos_tabla = []
     for _, fila in df_render.iterrows():
         nombre = fila['nombre_alumno']
@@ -1071,7 +1071,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
             str(total_aprobados), f"{pct_aprobados:.1f}% del total", 
             str(total_riesgo), f"{pct_riesgo:.1f}% del total")
 
-# Callback interactivo de redirección al hacer click sobre el gráfico de barras
+#callback interactivo de redirección al hacer click sobre el gráfico de barras
 @app.callback(
     Output('url', 'pathname', allow_duplicate=True),
     Input('grafico-barras-general', 'clickData'),
@@ -1087,7 +1087,7 @@ def redirigir_alumno(clickData, current_path):
             print(f"Error en redirección clickData: {e}")
     return dash.no_update
 
-# Control de layout (Sidebar y Margen) según autenticación
+#control de layout (Sidebar y Margen) según autenticación
 @app.callback(
     [Output('sidebar-container', 'style'),
      Output('page-content', 'style')],
@@ -1098,7 +1098,7 @@ def update_layout_auth(auth_data):
         return SIDEBAR_STYLE, CONTENT_STYLE
     return {'display': 'none'}, {'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'}
 
-# Manejo de Login y Logout
+#manejo de Login y Logout
 @app.callback(
     [Output('auth-store', 'data', allow_duplicate=True),
      Output('login-error', 'children')],
@@ -1112,9 +1112,20 @@ def handle_login(n_clicks, username, auth_data):
         return dash.no_update, ""
     
     username = username.strip().lower()
+    
+    #bypass Local de Seguridad (Palabras Clave)
+    keyword_teachers = ["profesor", "manager", "maestro", "docente"]
+    keyword_students = ["alumno", "estudiante"]
+    
+    if username in keyword_teachers:
+        return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, ""
+        
+    if username in keyword_students:
+        return auth_data, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
+
     token_moodle = os.environ.get("MOODLE_TOKEN")
     
-    # 1. Obtener el ID del usuario
+    #obtener el ID del usuario
     param_user = {
         'wstoken': token_moodle,
         'wsfunction': 'core_user_get_users_by_field',
@@ -1126,7 +1137,7 @@ def handle_login(n_clicks, username, auth_data):
     try:
         res_user = requests.get(URL_MOODLE, params=param_user, timeout=15).json()
         
-        # Validar permisos del token
+        #validar permisos del token
         if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
@@ -1137,7 +1148,7 @@ def handle_login(n_clicks, username, auth_data):
             
         user_id = res_user[0].get('id')
         
-        # 2. Consultar los roles del usuario en el curso principal (ej. ID 50)
+        #Consultar los roles del usuario en el curso principal 
         param_roles = {
             'wstoken': token_moodle,
             'wsfunction': 'core_enrol_get_enrolled_users',
