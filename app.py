@@ -104,7 +104,7 @@ def obtener_datos_moodle_live():
     try:
         #obtener carreras
         param_cat = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_categories', 'moodlewsrestformat': 'json'}
-        res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=15)
+        res_cat = requests.get(URL_MOODLE, params=param_cat, timeout=45)
         categorias = res_cat.json()
         if 'exception' in categorias or not isinstance(categorias, list):
             print("Error al obtener categorías de Moodle:", categorias)
@@ -112,7 +112,7 @@ def obtener_datos_moodle_live():
 
         #obtener cursos
         param_cur = {'wstoken': token_moodle, 'wsfunction': 'core_course_get_courses', 'moodlewsrestformat': 'json'}
-        res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=15)
+        res_cur = requests.get(URL_MOODLE, params=param_cur, timeout=45)
         cursos = res_cur.json()
         if 'exception' in cursos or not isinstance(cursos, list):
             print("Error al obtener cursos de Moodle:", cursos)
@@ -847,7 +847,7 @@ def cargar_diagnostico_ia(pathname):
         
     return html.Div(children=[
         html.Div(style={'display': 'flex', 'gap': '30px', 'flexWrap': 'wrap'}, children=[
-            # Columna izquierda: Riesgo y Predicción
+            #columna izquierda: Riesgo y Predicción
             html.Div(style={'flex': '1', 'minWidth': '300px'}, children=[
                 html.Div(style={'marginBottom': '25px'}, children=[
                     html.Label("Nivel de Riesgo de Deserción:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
@@ -1135,7 +1135,7 @@ def handle_login(n_clicks, username, auth_data):
     }
     
     try:
-        res_user = requests.get(URL_MOODLE, params=param_user, timeout=15).json()
+        res_user = requests.get(URL_MOODLE, params=param_user, timeout=45).json()
         
         #validar permisos del token
         if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
@@ -1156,14 +1156,14 @@ def handle_login(n_clicks, username, auth_data):
             'courseid': 50 # Curso base para validación
         }
         
-        res_roles = requests.get(URL_MOODLE, params=param_roles, timeout=15).json()
+        res_roles = requests.get(URL_MOODLE, params=param_roles, timeout=45).json()
         
         if isinstance(res_roles, dict) and res_roles.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
             return dash.no_update, error_msg
             
-        # Buscar al usuario y evaluar sus roles
+        #buscar al usuario y evaluar sus roles
         allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
         role_assigned = 'student' # Por defecto
         
