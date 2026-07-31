@@ -1121,7 +1121,7 @@ def handle_login(n_clicks, username, auth_data):
         return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, ""
         
     if username in keyword_students:
-        return auth_data, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
+        return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
 
     token_moodle = os.environ.get("MOODLE_TOKEN")
     
@@ -1141,10 +1141,10 @@ def handle_login(n_clicks, username, auth_data):
         if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
-            return auth_data, error_msg
+            return dash.no_update, error_msg
             
         if not res_user or not isinstance(res_user, list) or len(res_user) == 0:
-            return auth_data, "El usuario no existe en la base de datos de Moodle."
+            return dash.no_update, "El usuario no existe en la base de datos de Moodle."
             
         user_id = res_user[0].get('id')
         
@@ -1161,7 +1161,7 @@ def handle_login(n_clicks, username, auth_data):
         if isinstance(res_roles, dict) and res_roles.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
-            return auth_data, error_msg
+            return dash.no_update, error_msg
             
         # Buscar al usuario y evaluar sus roles
         allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
@@ -1181,7 +1181,7 @@ def handle_login(n_clicks, username, auth_data):
         return new_auth, ""
         
     except requests.exceptions.RequestException as e:
-        return auth_data, f"Error de conexión con el servidor Moodle: {e}"
+        return dash.no_update, f"Error de conexión con el servidor Moodle: {e}"
 
 @app.callback(
     Output('auth-store', 'data', allow_duplicate=True),
