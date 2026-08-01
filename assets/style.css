@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root, .dark-theme, #main-container.dark-theme {
-    /* Variables de Tema Oscuro por defecto */
+    /*tema Oscuro  */
     --bg-color: #0b0f19;
     --text-color: #ffffff;
     --text-muted: #94a3b8;
     --card-bg: #141c2e;
     --border-color: #1e293b;
     --hover-bg: #1e293b;
-    --accent-color: #008000; /* Verde Bandera Mate #008000 */
+    --accent-color: #008000; /* Verde  */
     --accent-hover: #006400;
     --sidebar-bg: #000B52; /* Azul Marino UTTEC Oficial */
     --sidebar-link-hover: rgba(0, 128, 0, 0.2);
-    --sidebar-link-active: #008000; /* Verde pill activo */
+    --sidebar-link-active: #008000; /* Verde  */
     --sidebar-text: #008000;
     --sidebar-text-active: #ffffff;
     --table-row-hover: #122418;
@@ -22,16 +22,16 @@
 }
 
 .light-theme, #main-container.light-theme {
-    /* Variables de Tema Claro */
+    /*tema Claro */
     --bg-color: #f4f6f9;
     --text-color: #000B52; /* Azul Marino para texto */
     --text-muted: #556080;
     --card-bg: #ffffff;
     --border-color: #dce3f0;
     --hover-bg: #f8fafc;
-    --accent-color: #008000; /* Verde Bandera Mate #008000 */
+    --accent-color: #008000; /* Verde */
     --accent-hover: #006400;
-    --sidebar-bg: #000B52; /* El sidebar se mantiene en Azul Marino #000B52 */
+    --sidebar-bg: #000B52; /* El menu color Marin */
     --sidebar-link-hover: rgba(0, 128, 0, 0.2);
     --sidebar-link-active: #008000;
     --sidebar-text: #008000;
@@ -58,7 +58,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Custom Scrollbar */
+/* barra de desplazamiento */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -74,7 +74,7 @@ body {
     background: var(--accent-color);
 }
 
-/* Sidebar Styling */
+/* estilo de menu lateral */
 .sidebar-link, .nav-link {
     display: flex;
     align-items: center;
@@ -113,7 +113,7 @@ body {
     box-shadow: 0 6px 18px rgba(0, 128, 0, 0.6);
 }
 
-/* Cards */
+/* tarjetas */
 .metric-card {
     background-color: var(--card-bg) !important;
     border: 1px solid var(--border-color) !important;
@@ -126,7 +126,7 @@ body {
     border-color: var(--accent-color) !important;
 }
 
-/* AI Insights Container */
+/* parte de la ia */
 .ai-insights-card {
     background: var(--card-bg) !important;
     border: 1px solid var(--border-color) !important;
@@ -138,7 +138,7 @@ body {
     box-shadow: 0 8px 32px var(--shadow-color);
 }
 
-/* Badges for Risk Levels */
+/* colores y caracteristicas de las insignias de color de cada zona de riesgo */
 .badge-risk-bajo {
     background-color: rgba(0, 128, 0, 0.15) !important;
     color: #008000 !important;
@@ -148,7 +148,6 @@ body {
     font-weight: 700;
     font-size: 13px;
     display: inline-block;
-}
 
 .badge-risk-medio {
     background-color: rgba(255, 193, 7, 0.15) !important;
@@ -172,7 +171,7 @@ body {
     display: inline-block;
 }
 
-/* Tables and nominal lists */
+/* Tabllas y lsitas nominales */
 .student-row {
     border-bottom: 1px solid var(--border-color) !important;
     background-color: var(--card-bg) !important;
@@ -194,7 +193,7 @@ body {
     text-decoration: underline;
 }
 
-/* Custom Dropdown Overrides for Dash */
+/* Modificación del  Dropdown */
 .Select-control, .Select-placeholder, .Select-value {
     background-color: var(--dropdown-bg) !important;
     border-color: var(--border-color) !important;
@@ -215,7 +214,7 @@ body {
     color: var(--accent-color) !important;
 }
 
-/* General Layout Styling */
+/* Estilo general de la aplicación */
 .section-container {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
