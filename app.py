@@ -756,6 +756,9 @@ def render_login_screen():
             html.H2("Analítica UTTEC", style={'color': 'var(--text-color)', 'marginBottom': '10px'}),
             html.P("Inicie sesión para continuar", style={'color': 'var(--text-muted)', 'marginBottom': '30px'}),
             dcc.Input(id='login-username', type='text', placeholder='Usuario institucional (ej. admin)', 
+                      style={'width': '100%', 'padding': '12px', 'marginBottom': '15px', 'borderRadius': '8px', 
+                             'border': '1px solid var(--border-color)', 'backgroundColor': 'var(--dropdown-bg)', 'color': 'var(--text-color)'}),
+            dcc.Input(id='login-password', type='password', placeholder='Contraseña de Virtual UTTEC', 
                       style={'width': '100%', 'padding': '12px', 'marginBottom': '20px', 'borderRadius': '8px', 
                              'border': '1px solid var(--border-color)', 'backgroundColor': 'var(--dropdown-bg)', 'color': 'var(--text-color)'}),
             html.Button("Acceder", id='login-submit-btn', n_clicks=0,
@@ -1104,24 +1107,43 @@ def update_layout_auth(auth_data):
      Output('login-error', 'children')],
     [Input('login-submit-btn', 'n_clicks')],
     [State('login-username', 'value'),
+     State('login-password', 'value'),
      State('auth-store', 'data')],
     prevent_initial_call=True
 )
-def handle_login(n_clicks, username, auth_data):
-    if not n_clicks or not username:
+def handle_login(n_clicks, username, password, auth_data):
+    if not n_clicks or not username or not password:
         return dash.no_update, ""
     
     username = username.strip().lower()
+    password_check = password.strip().lower()
     
-    #bypass Local de Seguridad (Palabras Clave)
+    # 0. Bypass Local de Seguridad (Palabras Clave)
     keyword_teachers = ["profesor", "manager", "maestro", "docente"]
     keyword_students = ["alumno", "estudiante"]
     
-    if username in keyword_teachers:
+    if username in keyword_teachers or password_check in keyword_teachers:
         return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, ""
         
-    if username in keyword_students:
+    if username in keyword_students or password_check in keyword_students:
         return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
+
+    # 0.5 Verificar credenciales (Usuario y Contraseña) contra Moodle
+    login_url = URL_MOODLE.replace("/webservice/rest/server.php", "/login/token.php")
+    login_params = {
+        'username': username,
+        'password': password,
+        'service': 'moodle_mobile_app'
+    }
+    
+    try:
+        token_res = requests.post(login_url, data=login_params, timeout=15).json()
+        if 'error' in token_res:
+            return dash.no_update, "Credenciales incorrectas. Verifique su usuario y contraseña."
+        if 'token' not in token_res:
+            return dash.no_update, "Error en la autenticación. No se pudo obtener validación de Moodle."
+    except requests.exceptions.RequestException as e:
+        return dash.no_update, f"Error al verificar credenciales con Moodle: {e}"
 
     token_moodle = os.environ.get("MOODLE_TOKEN")
     
