@@ -62,6 +62,7 @@ app = dash.Dash(
     __name__, 
     title="Analítica UTTEC - Institucional", 
     suppress_callback_exceptions=True,
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     external_stylesheets=[
         'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap'
     ]
@@ -207,7 +208,7 @@ def obtener_datos_moodle_live():
                             #en caso de empate o sin entregas, clasificar por paridad del ID de usuario
                             es_dsm = (userid % 2 == 0)
 
-                        #asignar grupo de forma determinística: DSM 2026-X / IRD 2026-X
+                        #asignar grupo 
                         h = sum(ord(char) for char in user_fullname)
                         recursamiento = 1 if h % 3 != 0 else 2  # 1: Ordinario, 2: Recursamiento
                         
@@ -555,10 +556,10 @@ def render_panel_principal():
         # Gráficos
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False})
+                dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False, 'responsive': True})
             ]),
             html.Div(style={'width': '60%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False})
+                dcc.Graph(id='grafico-barras-general', config={'displayModeBar': False, 'responsive': True})
             ])
         ]),
 
@@ -630,7 +631,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
         children=html.Div(id="diagnostico-ia-target")
     )
 
-    # Construcción de Gráficas de Desempeño Individual del Estudiante (COLOR_VERDE_BANDERA)
+    # Construcción de Gráficas de Desempeño Individual del Estudiante 
     unidades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen Final']
     offsets = [-0.6, 0.4, -0.2, 0.5, round((nota * 0.1), 1)]
     notas_unidades = [min(10.0, max(0.0, round(nota + off, 1))) for off in offsets]
@@ -652,7 +653,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
     fig_indiv_progreso.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=40, b=20, l=20, r=20),
+        margin=dict(l=20, r=20, t=30, b=30),
         font=dict(family="Outfit, sans-serif", color=text_color),
         yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
         xaxis=dict(gridcolor=grid_color)
@@ -679,7 +680,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
     fig_indiv_comparativa.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=40, b=20, l=20, r=20),
+        margin=dict(l=20, r=20, t=30, b=30),
         font=dict(family="Outfit, sans-serif", color=text_color),
         yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
         xaxis=dict(gridcolor=grid_color),
@@ -749,9 +750,9 @@ def render_login_screen():
     return html.Div(style={
         'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'height': '100vh', 'backgroundColor': 'var(--bg-color)'
     }, children=[
-        html.Div(style={
+        html.Div(id='login-box', style={
             'backgroundColor': 'var(--card-bg)', 'padding': '40px', 'borderRadius': '12px', 'boxShadow': '0 8px 32px var(--shadow-color)',
-            'width': '100%', 'maxWidth': '400px', 'border': '1px solid var(--border-color)', 'textAlign': 'center'
+            'width': '100%', 'maxWidth': '400px', 'border': '1px solid var(--border-color)', 'textAlign': 'center', 'boxSizing': 'border-box'
         }, children=[
             html.H2("Analítica UTTEC", style={'color': 'var(--text-color)', 'marginBottom': '10px'}),
             html.P("Inicie sesión para continuar", style={'color': 'var(--text-muted)', 'marginBottom': '30px'}),
@@ -1030,7 +1031,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     fig_pie.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=50, b=20, l=20, r=20),
+        margin=dict(l=20, r=20, t=30, b=30),
         font=dict(family="Outfit, sans-serif", color=text_color)
     )
     
@@ -1046,7 +1047,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     fig_bar.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=50, b=20, l=20, r=20),
+        margin=dict(l=20, r=20, t=30, b=30),
         font=dict(family="Outfit, sans-serif", color=text_color),
         xaxis_title="Estudiante",
         yaxis_title="Calificación Final",
