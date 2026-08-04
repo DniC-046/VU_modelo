@@ -190,7 +190,7 @@ def obtener_datos_moodle_live():
                             except:
                                 nota_final = 0.0
 
-                        #contabilizar puntuaciones para clasificación DSM vs IRD (Propedéutico)
+                        #contabilizar puntuaciones para clasificación DSM y IRD
                         if es_propedeutico_dtic and grade_text and '-' not in grade_text:
                             if 'desarrollo' in item_text or 'dsm' in item_text:
                                 dsm_score += 1
@@ -908,7 +908,7 @@ def manejar_filtros(n, carrera_sel, curso_sel):
     for g in sorted(df_f['grupo'].dropna().unique(), key=lambda x: str(x)):
         g_str = str(g).strip()
         label_text = g_str
-        # Si el usuario quiere garantizar identificación del año 2026
+        
         if '2026' in g_str and 'Grupo' not in g_str and 'DSM' not in g_str and 'IRD' not in g_str:
             label_text = f"Grupo {g_str}"
         elif g_str.isnumeric() and g_str == '2026':
