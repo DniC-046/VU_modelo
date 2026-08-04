@@ -143,7 +143,7 @@ def obtener_datos_moodle_live():
             if es_propedeutico_dtic:
                 nombre_carrera = "DIVISIÓN DE TECNOLOGÍAS DE LA INFORMACIÓN Y COMUNICACIÓN"
 
-            #consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula numerosa como Propedéutico)
+            #consultar calificaciones por curso (Timeout ampliado a 60s para procesar cursos de matrícula)
             param_calif = {
                 'wstoken': token_moodle,
                 'wsfunction': 'gradereport_user_get_grades_table',
@@ -414,7 +414,7 @@ def render_sidebar():
     links = []
     for name, href, icon_name in menu_items:
         is_active = (name == "Analítica")
-        color = "#ffffff" if is_active else COLOR_VERDE_BANDERA
+        color = "#ffffff" 
         icon_svg = get_svg_icon(icon_name, color)
         if is_active:
             links.append(
@@ -431,7 +431,7 @@ def render_sidebar():
             links.append(
                 html.Div(className='sidebar-link', children=[
                     icon_svg,
-                    html.Span(name, style={'fontSize': '15px', 'fontWeight': '600', 'color': COLOR_VERDE_BANDERA})
+                    html.Span(name, style={'fontSize': '15px', 'fontWeight': '600', 'color': '#ffffff'})
                 ])
             )
 

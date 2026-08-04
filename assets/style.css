@@ -80,7 +80,7 @@ body {
     align-items: center;
     padding: 12px 18px;
     border-radius: 8px;
-    color: var(--sidebar-text) !important;
+    color: #ffffff !important;
     font-weight: 600;
     margin-bottom: 8px;
     text-decoration: none;
@@ -222,7 +222,7 @@ body {
     padding: 25px;
 }
 
-/* Media Queries for Mobile Responsiveness */
+/* Media Queries para la parte responsiva de telefono */
 @media (max-width: 768px) {
     #sidebar-container {
         position: relative !important;
