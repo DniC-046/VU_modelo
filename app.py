@@ -511,15 +511,15 @@ def render_panel_principal():
         }, children=[
             html.Div(style={'flex': '1'}, children=[
                 html.Label("División / Carrera:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...", className='custom-dropdown')
+                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...", className='custom-dropdown', persistence=True, persistence_type='session')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Curso Moodle:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...", className='custom-dropdown')
+                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...", className='custom-dropdown', persistence=True, persistence_type='session')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", className='custom-dropdown')
+                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", className='custom-dropdown', persistence=True, persistence_type='session')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
@@ -1229,14 +1229,15 @@ def handle_login(n_clicks, username, password, auth_data):
         return dash.no_update, f"Error de conexión con el servidor Moodle: {e}"
 
 @app.callback(
-    Output('auth-store', 'data', allow_duplicate=True),
+    [Output('auth-store', 'data', allow_duplicate=True),
+     Output('url', 'pathname', allow_duplicate=True)],
     [Input('logout-btn', 'n_clicks')],
     prevent_initial_call=True
 )
 def handle_logout(n_clicks):
     if n_clicks:
-        return {'logged_in': False, 'role': None, 'username': None}
-    return dash.no_update
+        return {'logged_in': False, 'role': None, 'username': None}, '/login'
+    return dash.no_update, dash.no_update
 
 if __name__ == '__main__':
     puerto = int(os.environ.get('PORT', 5000))
