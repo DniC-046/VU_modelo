@@ -511,15 +511,15 @@ def render_panel_principal():
         }, children=[
             html.Div(style={'flex': '1'}, children=[
                 html.Label("División / Carrera:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...")
+                dcc.Dropdown(id='carrera-dropdown', placeholder="Sincronizando con Moodle...", className='custom-dropdown')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Curso Moodle:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...")
+                dcc.Dropdown(id='curso-dropdown', placeholder="Seleccione una carrera...", className='custom-dropdown')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Grupo Académico:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...")
+                dcc.Dropdown(id='grupo-dropdown', placeholder="Seleccione un curso...", className='custom-dropdown')
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
@@ -1139,7 +1139,7 @@ def handle_login(n_clicks, username, password, auth_data):
     username = username.strip().lower()
     password_check = password.strip().lower()
     
-    # 0. Bypass Local de Seguridad (Palabras Clave)
+    #Bypass Local de Seguridad (Palabras Clave)
     keyword_teachers = ["profesor", "manager", "maestro", "docente"]
     keyword_students = ["alumno", "estudiante"]
     
@@ -1149,7 +1149,7 @@ def handle_login(n_clicks, username, password, auth_data):
     if username in keyword_students or password_check in keyword_students:
         return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
 
-    # 0.5 Verificar credenciales (Usuario y Contraseña) contra Moodle
+    #Verificar credenciales (Usuario y Contraseña) contra Moodle
     login_url = URL_MOODLE.replace("/webservice/rest/server.php", "/login/token.php")
     login_params = {
         'username': username,

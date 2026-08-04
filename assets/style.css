@@ -214,7 +214,7 @@ body {
     color: var(--accent-color) !important;
 }
 
-/* 1. Contenedor principal del filtro (Cuadro cerrado) */
+/* Contenedor principal del filtro (Cuadro cerrado) */
 .dark-theme .Select-control,
 .dark-theme .css-1s2u09g-control,
 .dark-theme .css-1pahdxg-control {
@@ -231,7 +231,7 @@ body {
     color: #FFFFFF !important;
 }
 
-/* Menú desplegable (Lista de opciones al hacer clic) */
+/* menú desplegable (Lista de opciones al hacer clic) */
 .dark-theme .Select-menu-outer,
 .dark-theme .Select-option,
 .dark-theme .css-26l3qy-menu,
