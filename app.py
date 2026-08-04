@@ -799,7 +799,16 @@ def controlar_rutas(pathname, theme_class, auth_data):
         return render_login_screen()
     
     role = auth_data.get('role')
-    if role not in ['manager', 'editingteacher', 'teacher', 'coursecreator']:
+    allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
+    
+    # palabras clave y lista de roles permitidos
+    has_access = False
+    if isinstance(role, list):
+        has_access = any(r in allowed_roles for r in role)
+    elif isinstance(role, str):
+        has_access = role in allowed_roles
+        
+    if not has_access:
         return render_access_denied_screen(auth_data.get('username', 'Desconocido'))
 
     if not pathname or pathname == '/': 
@@ -1194,10 +1203,12 @@ def handle_login(n_clicks, username, password, auth_data):
             for u in res_roles:
                 if u.get('id') == user_id:
                     user_roles = [r.get('shortname') for r in u.get('roles', [])]
-                    for r in user_roles:
-                        if r in allowed_roles:
-                            role_assigned = r
-                            break
+                    # Filtro de roles
+                    assigned_roles = [r for r in user_roles if r in allowed_roles]
+                    if assigned_roles:
+                        role_assigned = assigned_roles
+                    else:
+                        role_assigned = ['student']
                     break
         
         new_auth = {'logged_in': True, 'role': role_assigned, 'username': username}
