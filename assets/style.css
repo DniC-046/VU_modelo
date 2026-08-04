@@ -1,61 +1,70 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-:root, .dark-theme, #main-container.dark-theme {
-    /*tema Oscuro  */
-    --bg-color: #0b0f19;
-    --text-color: #ffffff;
-    --text-muted: #94a3b8;
-    --card-bg: #141c2e;
-    --border-color: #1e293b;
-    --hover-bg: #1e293b;
-    --accent-color: #008000; /* Verde  */
-    --accent-hover: #006400;
-    --sidebar-bg: #000B52; /* Azul Marino */
-    --sidebar-link-hover: rgba(0, 128, 0, 0.2);
-    --sidebar-link-active: #008000; /* Verde  */
-    --sidebar-text: #008000;
-    --sidebar-text-active: #ffffff;
-    --table-row-hover: #122418;
-    --dropdown-bg: #141c2e;
-    --dropdown-text: #ffffff;
-    --shadow-color: rgba(0, 0, 0, 0.5);
-}
-
-.light-theme, #main-container.light-theme {
-    /*tema Claro */
-    --bg-color: #f4f6f9;
-    --text-color: #000B52; /* Azul Marino para texto */
-    --text-muted: #556080;
-    --card-bg: #ffffff;
-    --border-color: #dce3f0;
-    --hover-bg: #f8fafc;
-    --accent-color: #008000; /* Verde */
-    --accent-hover: #006400;
-    --sidebar-bg: #000B52; /* El menu color Marin */
-    --sidebar-link-hover: rgba(0, 128, 0, 0.2);
-    --sidebar-link-active: #008000;
-    --sidebar-text: #008000;
-    --sidebar-text-active: #ffffff;
-    --table-row-hover: #e6ffeb;
-    --dropdown-bg: #ffffff;
+:root {
+    /* Tema Claro por Defecto */
+    --bg-main: #F4F6F9;
+    --bg-card: #FFFFFF;
+    --text-primary: #000B52;
+    --text-secondary: #556080;
+    --border-color: #DCE3F0;
+    --dropdown-bg: #FFFFFF;
     --dropdown-text: #000B52;
+    --dropdown-hover: #E6FFEB;
+    
+    /* Variables para compatibilidad con app.py y sidebar */
+    --bg-color: var(--bg-main);
+    --card-bg: var(--bg-card);
+    --text-color: var(--text-primary);
+    --text-muted: var(--text-secondary);
+    --accent-color: #008000;
+    --accent-hover: #006400;
+    --sidebar-bg: #000B52;
+    --sidebar-link-hover: rgba(0, 128, 0, 0.2);
+    --sidebar-text: #008000;
+    --table-row-hover: #e6ffeb;
     --shadow-color: rgba(0, 11, 82, 0.08);
 }
 
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
+[data-theme="dark"], .dark-theme, #main-container.dark-theme {
+    /* Tema Oscuro Reconstruido */
+    --bg-main: #0B0F19;
+    --bg-card: #141C2E;
+    --text-primary: #FFFFFF;
+    --text-secondary: #94A3B8;
+    --border-color: #1E293B;
+    --dropdown-bg: #141C2E;
+    --dropdown-text: #FFFFFF;
+    --dropdown-hover: #008000;
+    
+    /* Variables para compatibilidad con app.py y sidebar */
+    --bg-color: var(--bg-main);
+    --card-bg: var(--bg-card);
+    --text-color: var(--text-primary);
+    --text-muted: var(--text-secondary);
+    --accent-color: #008000;
+    --accent-hover: #006400;
+    --sidebar-bg: #000B52;
+    --sidebar-link-hover: rgba(0, 128, 0, 0.2);
+    --sidebar-text: #008000;
+    --table-row-hover: #122418;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Fondo general de la app */
+body, #main-container {
+    background-color: var(--bg-main) !important;
+    color: var(--text-primary) !important;
     font-family: 'Outfit', sans-serif;
     margin: 0;
     padding: 0;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-#main-container {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+/* Tarjetas y Contenedores */
+.card, .dash-card, div[class*="card"] {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
 }
 
 /* barra de desplazamiento */
@@ -64,7 +73,7 @@ body {
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: var(--bg-color);
+    background: var(--bg-main);
 }
 ::-webkit-scrollbar-thumb {
     background: var(--border-color);
@@ -148,6 +157,7 @@ body {
     font-weight: 700;
     font-size: 13px;
     display: inline-block;
+}
 
 .badge-risk-medio {
     background-color: rgba(255, 193, 7, 0.15) !important;
@@ -193,66 +203,31 @@ body {
     text-decoration: underline;
 }
 
-/* Modificación del Dropdown General */
-.Select-control, .Select-placeholder, .Select-value {
+/* Reset Completo de dcc.Dropdown (Adaptable por variables) */
+.Select-control, div[class*="-control"] {
     background-color: var(--dropdown-bg) !important;
     border-color: var(--border-color) !important;
+}
+
+.Select-value-label, .Select-placeholder, div[class*="-singleValue"], div[class*="-placeholder"], input {
     color: var(--dropdown-text) !important;
 }
-.Select-value-label {
-    color: var(--dropdown-text) !important;
+
+.Select-menu-outer, div[class*="-menu"], div[class*="-MenuList"] {
+    background-color: var(--dropdown-bg) !important;
+    border: 1px solid var(--border-color) !important;
 }
-.Select-placeholder {
-    color: var(--text-muted) !important;
-}
-.Select-menu-outer, .Select-option {
+
+.Select-option, div[class*="-option"] {
     background-color: var(--dropdown-bg) !important;
     color: var(--dropdown-text) !important;
 }
-.Select-option.is-focused, .Select-option:hover {
-    background-color: var(--hover-bg) !important;
-    color: var(--accent-color) !important;
-}
 
-/* Contenedor principal del filtro (Cuadro cerrado) */
-.dark-theme .Select-control,
-.dark-theme .css-1s2u09g-control,
-.dark-theme .css-1pahdxg-control {
-    background-color: #141C2E !important;
-    border-color: #1E293B !important;
+.Select-option:hover, div[class*="-option"]:hover {
+    background-color: var(--dropdown-hover) !important;
     color: #FFFFFF !important;
 }
 
-/* texto seleccionado y texto que escribe el usuario */
-.dark-theme .Select-value-label,
-.dark-theme .Select-input > input,
-.dark-theme .css-1dimb5e-singleValue,
-.dark-theme .css-qc651g-mfeInjected {
-    color: #FFFFFF !important;
-}
-
-/* menú desplegable (Lista de opciones al hacer clic) */
-.dark-theme .Select-menu-outer,
-.dark-theme .Select-option,
-.dark-theme .css-26l3qy-menu,
-.dark-theme [class*="-menu"] {
-    background-color: #141C2E !important;
-    color: #FFFFFF !important;
-}
-
-/* opción sobre la que se pasa el cursor (Hover) */
-.dark-theme .Select-option:hover,
-.dark-theme .Select-option.is-focused,
-.dark-theme [class*="-option"]:hover {
-    background-color: #1E293B !important;
-    color: #008000 !important; /* Verde institucional */
-}
-
-/* Placeholder texto de ayuda  */
-.dark-theme .Select-placeholder,
-.dark-theme .css-1wa3eu0-placeholder {
-    color: #94A3B8 !important;
-}
 /* Estilo general de la aplicación */
 .section-container {
     background-color: var(--card-bg);
