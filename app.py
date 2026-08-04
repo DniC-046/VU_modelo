@@ -1107,8 +1107,19 @@ def redirigir_alumno(clickData, current_path):
     [Input('auth-store', 'data')]
 )
 def update_layout_auth(auth_data):
-    if auth_data and auth_data.get('logged_in') and auth_data.get('role') in ['manager', 'editingteacher', 'teacher', 'coursecreator']:
-        return SIDEBAR_STYLE, CONTENT_STYLE
+    if auth_data and auth_data.get('logged_in'):
+        role = auth_data.get('role')
+        allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
+        
+        has_access = False
+        if isinstance(role, list):
+            has_access = any(r in allowed_roles for r in role)
+        elif isinstance(role, str):
+            has_access = role in allowed_roles
+            
+        if has_access:
+            return SIDEBAR_STYLE, CONTENT_STYLE
+            
     return {'display': 'none'}, {'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'}
 
 #manejo de Login y Logout
