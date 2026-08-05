@@ -1258,12 +1258,22 @@ def handle_login(n_clicks, username, password, auth_data):
 @app.callback(
     [Output('auth-store', 'data', allow_duplicate=True),
      Output('url', 'pathname', allow_duplicate=True)],
-    [Input('logout-btn', 'n_clicks'),
-     Input('logout-btn-denied', 'n_clicks')],
+    [Input('logout-btn', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_logout(n1, n2):
-    if n1 or n2:
+def handle_logout_main(n_clicks):
+    if n_clicks:
+        return {'logged_in': False, 'role': None, 'username': None}, '/login'
+    return dash.no_update, dash.no_update
+
+@app.callback(
+    [Output('auth-store', 'data', allow_duplicate=True),
+     Output('url', 'pathname', allow_duplicate=True)],
+    [Input('logout-btn-denied', 'n_clicks')],
+    prevent_initial_call=True
+)
+def handle_logout_denied(n_clicks):
+    if n_clicks:
         return {'logged_in': False, 'role': None, 'username': None}, '/login'
     return dash.no_update, dash.no_update
 
