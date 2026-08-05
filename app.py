@@ -218,10 +218,7 @@ def obtener_datos_moodle_live():
                         else:
                             grupo_detectado = f"IRD 2026-3-{recursamiento}"
                     else:
-                        if "-" in nombre_curso:
-                            grupo_detectado = nombre_curso.split("-")[-1].strip().upper()
-                        elif "GRUPO" in nombre_curso.upper():
-                            grupo_detectado = nombre_curso.upper().split("GRUPO")[-1].strip()
+                        grupo_detectado = nombre_curso.strip().upper()
 
                     lista_completa_alumnos.append({
                         'carrera': nombre_carrera,
@@ -932,18 +929,11 @@ def manejar_filtros(n, carrera_sel, curso_sel, grupo_sel):
     if curso_sel: 
         df_f = df_f[df_f['curso'] == curso_sel]
     
-    # Procesar grupos asegurando tipo string y formateo explícito
+    # Procesar grupos asegurando tipo string literal
     op_grupos = []
     for g in sorted(df_f['grupo'].dropna().unique(), key=lambda x: str(x)):
         g_str = str(g).strip()
-        label_text = g_str
-        
-        if '2026' in g_str and 'Grupo' not in g_str and 'DSM' not in g_str and 'IRD' not in g_str:
-            label_text = f"Grupo {g_str}"
-        elif g_str.isnumeric() and g_str == '2026':
-            label_text = f"Ciclo {g_str}"
-            
-        op_grupos.append({'label': label_text, 'value': g_str})
+        op_grupos.append({'label': g_str, 'value': g_str})
 
     if grupo_sel:
         df_f = df_f[df_f['grupo'] == grupo_sel]
