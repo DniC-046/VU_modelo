@@ -616,10 +616,7 @@ def render_panel_principal():
         ])
     ])
 
-def render_panel_individual(nombre_estudiante, theme_class='dark-theme'):
-    from urllib.parse import unquote
-    import plotly.express as px
-
+def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_seleccionado=None):
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
     text_color = '#000B52' if is_light else '#ffffff'
@@ -627,114 +624,196 @@ def render_panel_individual(nombre_estudiante, theme_class='dark-theme'):
 
     df = obtener_datos_procesados()
     if df.empty: 
-        return html.Div([
-            html.H3('Cargando datos del sistema...'), 
-            dcc.Link('Volver a Analítica', href='/')
-        ], className='p-5 text-center', style={'padding': '40px', 'textAlign': 'center'})
-
-    # decodificación y limpieza absoluta
-    nombre_limpio = unquote(str(nombre_estudiante)).strip().lower()
+        return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
+            html.H2("Cargando base de datos...", style={'color': 'var(--accent-color)'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
+        ])
     
-    #búsqueda normalizada
+    # Normalización para búsqueda insensible a mayúsculas y espacios
+    nombre_limpio = urllib.parse.unquote(str(nombre_alumno)).strip().lower()
     df_nombres_norm = df['nombre_alumno'].astype(str).str.strip().str.lower()
-    df_alumno = df[df_nombres_norm == nombre_limpio]
-    
-    
-    if df_alumno.empty:
-        df_alumno = df[df['nombre_alumno'].astype(str).str.contains(nombre_limpio, case=False, na=False)]
-        
-    if df_alumno.empty:
-        return html.Div([
-            html.H3('Estudiante no encontrado', style={'color': '#FF4D4D'}), 
-            dcc.Link('Volver a Analítica', href='/', style={'color': 'var(--accent-color)', 'fontWeight': 'bold'})
-        ], className='p-5 text-center', style={'padding': '40px', 'textAlign': 'center'})
 
+    # lectura del curso en el perfil
+    if curso_seleccionado:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+        if registro.empty:
+            registro = df[df_nombres_norm == nombre_limpio]
+    else:
+        registro = df[df_nombres_norm == nombre_limpio]
+        
+    if registro.empty: 
+        return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
+            html.H3("No se encontraron datos para este estudiante", style={'color': '#FF4D4D'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
+        ])
+    
     try:
-        datos = df_alumno.iloc[0]
-        nombre_completo = datos.get('nombre_alumno', nombre_estudiante)
-        grupo = datos.get('grupo', 'Sin Grupo')
-        carrera = datos.get('carrera', 'Sin Carrera')
-        nota_final = datos.get('calificacion_final', 0.0)
+        datos = registro.iloc[0]
+        nota = datos['calificacion_final']
+        carrera = datos['carrera']
+        curso = datos['curso']
+        grupo = datos['grupo']
         
-        estatus = "Aprobado" if nota_final >= 6.0 else "En Riesgo"
-        color_estatus = COLOR_VERDE_BANDERA if nota_final >= 6.0 else "#FF4D4D"
+        # Calcular promedios del grupo
+        df_grupo = df[(df['curso'] == curso) & (df['grupo'] == grupo)]
+        promedio_grupo = df_grupo['calificacion_final'].mean() if not df_grupo.empty else 0.0
+        calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
         
-        iniciales = "".join([p[0] for p in str(nombre_completo).split() if p][:2]).upper()
-
-        # Generar datos simulados o históricos para la gráfica de barras de actividades
-        actividades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen']
-        offsets = [-0.6, 0.4, -0.2, 0.5, round((nota_final * 0.1), 1)]
-        calificaciones = [min(10.0, max(0.0, round(nota_final + off, 1))) for off in offsets]
+        estatus = "Aprobado" if nota >= 6.0 else "Riesgo"
+        color_estatus = COLOR_VERDE_BANDERA if nota >= 6.0 else "#FF4D4D"
         
-        df_actividades = pd.DataFrame({
-            'Actividad': actividades,
-            'Calificación': calificaciones
-        })
-
-        fig_barras = px.bar(
-            df_actividades,
-            x='Actividad',
-            y='Calificación',
-            text='Calificación',
-            title='Desempeño por Actividad',
+        # Iniciales de avatar 
+        partes = nombre_alumno.split()
+        iniciales = "".join([p[0] for p in partes if p][:2])
+    
+        # Lógica de segmentación del grupo propedéutico para la vista individual
+        info_grupo_text = ""
+        es_propedeutico = "PROPEDÉUTICO" in curso or "PROP" in curso
+        if grupo and grupo != "SIN GRUPO ASIGNADO" and es_propedeutico:
+            parts = grupo.split()
+            if len(parts) >= 2:
+                siglas = parts[0]
+                bloques = parts[1].split('-')
+                if len(bloques) == 3:
+                    anio = bloques[0]
+                    cuatrimestre = bloques[1]
+                    recursamiento_val = int(bloques[2])
+                    carrera_name = "Desarrollo de Software Multiplataforma" if siglas == "DSM" else "Infraestructura de Redes Digitales" if siglas == "IRD" else siglas
+                    recursamiento_text = "Ordinario" if recursamiento_val == 1 else f"Recursamiento ({recursamiento_val}a vez)"
+                    info_grupo_text = f" | Segmento: {carrera_name} (Ingreso {anio}, Cuatri {cuatrimestre}, {recursamiento_text})"
+    
+        #Contenedor de carga para OpenAI
+        ia_container = dcc.Loading(
+            id="loading-ia",
+            type="circle",
+            color=COLOR_VERDE_BANDERA,
+            children=html.Div(id="diagnostico-ia-target")
+        )
+    
+        #Construcción de gráficas de desempeño individual del estudiante 
+        unidades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen Final']
+        offsets = [-0.6, 0.4, -0.2, 0.5, round((nota * 0.1), 1)]
+        notas_unidades = [min(10.0, max(0.0, round(nota + off, 1))) for off in offsets]
+        df_progreso_indiv = pd.DataFrame({'Actividad': unidades, 'Calificación': notas_unidades})
+        
+        fig_indiv_progreso = px.area(
+            df_progreso_indiv, 
+            x='Actividad', 
+            y='Calificación', 
+            markers=True,
+            title="Progreso Individual por Unidad Académica",
             template=plotly_template
         )
-        fig_barras.update_traces(
-            marker_color=COLOR_VERDE_BANDERA,
-            textposition='outside'
+        fig_indiv_progreso.update_traces(
+            line_color=COLOR_VERDE_BANDERA, 
+            fillcolor='rgba(0, 128, 0, 0.15)',
+            marker=dict(size=8, color=COLOR_VERDE_BANDERA)
         )
-        fig_barras.update_layout(
+        fig_indiv_progreso.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
-            margin=dict(l=20, r=20, t=40, b=20),
+            margin=dict(l=20, r=20, t=30, b=30),
             font=dict(family="Outfit, sans-serif", color=text_color),
             yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
             xaxis=dict(gridcolor=grid_color)
         )
-
+    
+        cat_comp = ['Calificación Alumno', 'Promedio Grupo', 'Nota Máxima Grupo']
+        val_comp = [round(nota, 1), round(promedio_grupo, 1), round(calif_max, 1)]
+        df_comp_indiv = pd.DataFrame({'Métrica': cat_comp, 'Puntaje': val_comp})
+        
+        fig_indiv_comparativa = px.bar(
+            df_comp_indiv,
+            x='Métrica',
+            y='Puntaje',
+            color='Métrica',
+            color_discrete_map={
+                'Calificación Alumno': COLOR_VERDE_BANDERA,
+                'Promedio Grupo': '#94a3b8' if is_light else '#64748b',
+                'Nota Máxima Grupo': '#000B52' if is_light else '#002B66'
+            },
+            text='Puntaje',
+            title="Rendimiento Alumno vs. Referentes de Grupo",
+            template=plotly_template
+        )
+        fig_indiv_comparativa.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            margin=dict(l=20, r=20, t=30, b=30),
+            font=dict(family="Outfit, sans-serif", color=text_color),
+            yaxis=dict(range=[0, 10.5], gridcolor=grid_color),
+            xaxis=dict(gridcolor=grid_color),
+            showlegend=False
+        )
+    
         return html.Div(children=[
-            # Botón de Navegación
-            dcc.Link("← Volver a la vista principal", href="/", style={'color': 'var(--accent-color)', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-block', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
             
-            # Header/Título
+            # Cabecera de identidad del estudiante
             html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
-                html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': COLOR_VERDE_BANDERA, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '800'}, children=iniciales),
+                html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': COLOR_VERDE_BANDERA, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(0, 128, 0, 0.4)'}, children=iniciales),
                 html.Div(style={'flex': '1'}, children=[
-                    html.H2(nombre_completo, style={'color': 'var(--text-color)', 'margin': '0 0 10px 0', 'fontSize': '24px', 'fontWeight': '700'}),
-                    html.P(f"Programa: {carrera}", style={'margin': '0 0 5px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
-                    html.P(f"Grupo Académico: {grupo}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
+                    html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '15px'}, children=[
+                        html.H2(nombre_alumno, style={'color': 'var(--text-color)', 'margin': '0', 'fontSize': '24px', 'fontWeight': '700'}),
+                        html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 128, 0, 0.15)', 'color': COLOR_VERDE_BANDERA, 'border': '1px solid rgba(0, 128, 0, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
+                    ]),
+                    html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
+                    html.P([
+                        html.Strong("Asignatura Auditada: ", style={'color': 'var(--accent-color)'}), f"{curso} ",
+                        html.Span(f"| Grupo: {grupo}{info_grupo_text}", style={'marginLeft': '8px'})
+                    ], style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
                 ])
             ]),
-
-            # Tarjetas de Métricas (KPIs)
+    
+            # KPIs del alumno
             html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
                 html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                    html.P("Promedio General", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
-                    html.H3(f"{nota_final:.1f}", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': color_estatus}),
+                    html.P("Calificación Acumulada", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                    html.H3(f"{nota:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': color_estatus}),
+                    html.P("Escala 0.0 - 10.0", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
                 ]),
                 html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                    html.P("Total Actividades", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
-                    html.H3(str(len(actividades)), style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                    html.P("Promedio del Grupo", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                    html.H3(f"{promedio_grupo:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                    html.P("Grupo comparativo", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
                 ]),
                 html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                    html.P("Estatus", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                    html.P("Calificación Máxima", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
+                    html.H3(f"{calif_max:.1f} pts", style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
+                    html.P("Puntaje tope actual", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
+                ]),
+                html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                    html.P("Estatus Académico", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
                     html.H3(estatus, style={'margin': '8px 0 0 0', 'fontSize': '26px', 'fontWeight': '700', 'color': color_estatus}),
+                    html.P("Según nota de corte (6.0)", style={'margin': '4px 0 0 0', 'fontSize': '12px', 'color': 'var(--text-muted)'})
                 ])
             ]),
-
-            # Visualización: Gráfica de barras
-            html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
-                dcc.Graph(figure=fig_barras, config={'displayModeBar': False, 'responsive': True})
-            ])
+    
+            # Bloque de insights de IA 
+            html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px'}, children=[
+                html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
+                    html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': 'var(--accent-color)', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
+                ]),
+                ia_container
+            ]),
+    
+            # Bloque de vsualizaciones de rendimiento individual con el diagnóstico de IA
+            html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
+                html.Div(style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                    dcc.Graph(figure=fig_indiv_progreso, config={'displayModeBar': False})
+                ]),
+                html.Div(style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
+                    dcc.Graph(figure=fig_indiv_comparativa, config={'displayModeBar': False})
+                ])
+                ])
         ])
     except Exception as e:
-        print(f"Error renderizando perfil: {e}")
-        return html.Div([
-            html.H3('Error al procesar el perfil', style={'color': '#FF4D4D'}), 
-            html.P(str(e)),
-            dcc.Link('Volver a Analítica', href='/')
-        ], className='p-5 text-center', style={'padding': '40px', 'textAlign': 'center'})
-
+        print(f"Error renderizando panel individual para {nombre_alumno}: {e}")
+        return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
+            html.H3("Ocurrió un error al cargar el perfil de este estudiante.", style={'color': '#FF4D4D'}),
+            html.P(str(e), style={'color': 'var(--text-muted)', 'marginBottom': '20px'}),
+            dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
+        ])
 
 def render_login_screen():
     return html.Div(style={
@@ -785,16 +864,116 @@ def render_access_denied_screen(username):
      Input('auth-store', 'data')]
 )
 def controlar_rutas(pathname, theme_class, auth_data):
-    if not auth_data: 
-        return render_access_denied_screen()
+    if not auth_data or not auth_data.get('logged_in'):
+        return render_login_screen()
+    
+    role = auth_data.get('role')
+    allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
+    
+    # palabras clave y lista de roles permitidos
+    has_access = False
+    if isinstance(role, list):
+        has_access = any(r in allowed_roles for r in role)
+    elif isinstance(role, str):
+        has_access = role in allowed_roles
+        
+    if not has_access:
+        return render_access_denied_screen(auth_data.get('username', 'Desconocido'))
+
     if not pathname or pathname == '/': 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
-        from urllib.parse import unquote
-        nombre_estudiante = unquote(pathname.split('/')[-1])
-        return render_panel_individual(nombre_estudiante, theme_class)
+        # Devuelve un contenedor vacío para evitar dependencias circulares con State
+        return html.Div(id='individual-profile-container')
     return html.Div("404 - Ruta no válida")
 
+# Nuevo Callback para poblar el perfil individual sin bloquear la ruta
+@app.callback(
+    Output('individual-profile-container', 'children'),
+    [Input('url', 'pathname')],
+    [State('curso-dropdown', 'value'),
+     State('main-container', 'className')]
+)
+def populate_individual_profile(pathname, curso_seleccionado, theme_class):
+    if not pathname or not pathname.startswith('/alumno/'):
+        return dash.no_update
+        
+    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
+    return render_panel_individual(nombre_alumno, theme_class, curso_seleccionado)
+
+# Callback asíncrono para cargar el diagnóstico de IA
+@app.callback(
+    Output('diagnostico-ia-target', 'children'),
+    [Input('url', 'pathname')],
+    [State('curso-dropdown', 'value')]
+)
+def cargar_diagnostico_ia(pathname, curso_seleccionado):
+    if not pathname or not pathname.startswith('/alumno/'):
+        return dash.no_update
+        
+    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
+    
+    df = obtener_datos_procesados()
+    if df.empty:
+        return html.P("Base de datos no cargada.", style={'color': '#FF4D4D'})
+        
+    nombre_limpio = urllib.parse.unquote(str(nombre_alumno)).strip().lower()
+    df_nombres_norm = df['nombre_alumno'].astype(str).str.strip().str.lower()
+        
+    if curso_seleccionado:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+        if registro.empty:
+            registro = df[df_nombres_norm == nombre_limpio]
+    else:
+        registro = df[df_nombres_norm == nombre_limpio]
+    if registro.empty:
+        return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
+        
+    datos = registro.iloc[0]
+    
+    res = obtener_diagnostico_ia(
+        nombre_alumno,
+        datos['carrera'],
+        datos['curso'],
+        datos['grupo'],
+        datos['calificacion_final']
+    )
+    
+    riesgo = res.get("riesgo", "Desconocido")
+    justificacion = res.get("justificacion_riesgo", "")
+    prediccion = res.get("prediccion", "")
+    recomendaciones = res.get("recomendaciones", [])
+    
+    badge_class = "badge-risk-bajo"
+    if riesgo == "Medio":
+        badge_class = "badge-risk-medio"
+    elif riesgo == "Alto" or riesgo == "Error":
+        badge_class = "badge-risk-alto"
+        
+    return html.Div(children=[
+        html.Div(style={'display': 'flex', 'gap': '30px', 'flexWrap': 'wrap'}, children=[
+            #columna izquierda: Riesgo y Predicción
+            html.Div(style={'flex': '1', 'minWidth': '300px'}, children=[
+                html.Div(style={'marginBottom': '25px'}, children=[
+                    html.Label("Nivel de Riesgo de Deserción:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
+                    html.Span(riesgo, className=badge_class),
+                    html.P(justificacion, style={'marginTop': '12px', 'color': 'var(--text-color)', 'fontSize': '14px', 'lineHeight': '1.5'})
+                ]),
+                html.Div(children=[
+                    html.Label("Predicción de Rendimiento:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '8px'}),
+                    html.P(prediccion, style={'color': 'var(--text-color)', 'fontSize': '14px', 'lineHeight': '1.5'})
+                ])
+            ]),
+            
+            # Columna derecha: Recomendaciones
+            html.Div(style={'flex': '1', 'minWidth': '300px', 'borderLeft': '1px solid var(--border-color)', 'paddingLeft': '30px'}, children=[
+                html.Label("Recomendaciones Pedagógicas:", style={'display': 'block', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px', 'marginBottom': '12px'}),
+                html.Ul([
+                    html.Li(r, style={'color': 'var(--text-color)', 'fontSize': '14px', 'marginBottom': '10px', 'lineHeight': '1.4'}) for r in recomendaciones
+                ], style={'paddingLeft': '20px', 'margin': '0'})
+            ])
+        ])
+    ])
 
 @app.callback(
     [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options'),
