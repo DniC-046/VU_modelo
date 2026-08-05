@@ -590,7 +590,7 @@ def render_panel_principal():
         ])
     ])
 
-def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
+def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_seleccionado=None):
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
     text_color = '#000B52' if is_light else '#ffffff'
@@ -603,7 +603,10 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
             dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
     
-    registro = df[df['nombre_alumno'] == nombre_alumno]
+    if curso_seleccionado:
+        registro = df[(df['nombre_alumno'] == nombre_alumno) & (df['curso'] == curso_seleccionado)]
+    else:
+        registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty: 
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
             html.H2("Estudiante no encontrado.", style={'color': '#FF4D4D'}),
@@ -813,9 +816,10 @@ def render_access_denied_screen(username):
     Output('page-content', 'children'),
     [Input('url', 'pathname'),
      Input('main-container', 'className'),
-     Input('auth-store', 'data')]
+     Input('auth-store', 'data')],
+    [State('curso-dropdown', 'value')]
 )
-def controlar_rutas(pathname, theme_class, auth_data):
+def controlar_rutas(pathname, theme_class, auth_data, curso_seleccionado):
     if not auth_data or not auth_data.get('logged_in'):
         return render_login_screen()
     
@@ -836,15 +840,16 @@ def controlar_rutas(pathname, theme_class, auth_data):
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
         nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return render_panel_individual(nombre_alumno, theme_class)
+        return render_panel_individual(nombre_alumno, theme_class, curso_seleccionado)
     return html.Div("404 - Ruta no válida")
 
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
     Output('diagnostico-ia-target', 'children'),
-    Input('url', 'pathname')
+    [Input('url', 'pathname')],
+    [State('curso-dropdown', 'value')]
 )
-def cargar_diagnostico_ia(pathname):
+def cargar_diagnostico_ia(pathname, curso_seleccionado):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
@@ -854,7 +859,10 @@ def cargar_diagnostico_ia(pathname):
     if df.empty:
         return html.P("Base de datos no cargada.", style={'color': '#FF4D4D'})
         
-    registro = df[df['nombre_alumno'] == nombre_alumno]
+    if curso_seleccionado:
+        registro = df[(df['nombre_alumno'] == nombre_alumno) & (df['curso'] == curso_seleccionado)]
+    else:
+        registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty:
         return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
         
