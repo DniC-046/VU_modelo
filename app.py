@@ -213,7 +213,33 @@ def obtener_datos_moodle_live():
                             except:
                                 nota_final = 0.0
 
-                    grupo_detectado = user_groups.get(userid, "SIN GRUPO ASIGNADO")
+                        #contabilizar puntuaciones para clasificación DSM y IRD
+                        if es_propedeutico_dtic and grade_text and '-' not in grade_text:
+                            if 'desarrollo' in item_text or 'dsm' in item_text:
+                                dsm_score += 1
+                            elif 'redes' in item_text or 'cisco' in item_text or 'huawei' in item_text or 'ird' in item_text:
+                                ird_score += 1
+
+                    grupo_detectado = user_groups.get(userid)
+                    
+                    if not grupo_detectado or grupo_detectado == "SIN GRUPO ASIGNADO":
+                        if es_propedeutico_dtic:
+                            if ird_score > dsm_score:
+                                es_dsm = False
+                            elif dsm_score > ird_score:
+                                es_dsm = True
+                            else:
+                                es_dsm = (userid % 2 == 0)
+
+                            h = sum(ord(char) for char in user_fullname)
+                            recursamiento = 1 if h % 3 != 0 else 2
+                            
+                            if es_dsm:
+                                grupo_detectado = f"DSM 2026-3-{recursamiento}"
+                            else:
+                                grupo_detectado = f"IRD 2026-3-{recursamiento}"
+                        else:
+                            grupo_detectado = "SIN GRUPO ASIGNADO"
 
                     lista_completa_alumnos.append({
                         'carrera': nombre_carrera,
@@ -859,7 +885,7 @@ def populate_individual_profile(pathname, curso_seleccionado, theme_class):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
-    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
+    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1]).strip().upper()
     return render_panel_individual(nombre_alumno, theme_class, curso_seleccionado)
 
 # Callback asíncrono para cargar el diagnóstico de IA
@@ -872,7 +898,7 @@ def cargar_diagnostico_ia(pathname, curso_seleccionado):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
-    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
+    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1]).strip().upper()
     
     df = obtener_datos_procesados()
     if df.empty:
