@@ -39,7 +39,8 @@ def get_svg_icon(name, color=COLOR_VERDE_BANDERA):
         'messages': '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
         'settings': '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
         'sun': '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
-        'moon': '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+        'moon': '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+        'logout': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
     }
     
     inner = paths.get(name, '')
@@ -474,11 +475,37 @@ def render_sidebar():
         }
     )
 
+    # Botón de Cerrar Sesión
+    logout_button = html.Button(
+        id='logout-btn',
+        n_clicks=0,
+        className='sidebar-link',
+        children=[
+            get_svg_icon('logout', '#ffffff'),
+            html.Span("Cerrar Sesión", style={'fontSize': '15px', 'fontWeight': '600', 'color': '#ffffff'})
+        ],
+        style={
+            'backgroundColor': 'transparent',
+            'border': 'none',
+            'width': '100%',
+            'textAlign': 'left',
+            'padding': '12px 18px',
+            'color': '#ffffff',
+            'cursor': 'pointer',
+            'display': 'flex',
+            'alignItems': 'center',
+            'marginTop': '8px'
+        }
+    )
+
     return html.Div(style=SIDEBAR_STYLE, children=[
         logo_header,
         html.Hr(style={'borderColor': 'rgba(0, 128, 0, 0.25)', 'margin': '10px 0'}),
         html.Div(links, style={'display': 'flex', 'flexDirection': 'column'}),
-        theme_toggle
+        html.Div(style={'marginTop': 'auto', 'display': 'flex', 'flexDirection': 'column'}, children=[
+            theme_toggle,
+            logout_button
+        ])
     ])
 
 #Layout principal
@@ -782,7 +809,7 @@ def render_access_denied_screen(username):
             html.P(f"Usuario autenticado: {username}", style={'color': 'var(--text-color)', 'marginBottom': '10px', 'fontWeight': 'bold'}),
             html.P("Esta plataforma está reservada exclusivamente para profesores con autoridad y/o Mánager.", 
                    style={'color': 'var(--text-muted)', 'marginBottom': '30px', 'lineHeight': '1.5'}),
-            html.Button("Cerrar Sesión", id='logout-btn', n_clicks=0,
+            html.Button("Cerrar Sesión", id='logout-btn-denied', n_clicks=0,
                         style={'padding': '10px 20px', 'backgroundColor': 'var(--hover-bg)', 'color': 'var(--text-color)', 
                                'border': '1px solid var(--border-color)', 'borderRadius': '8px', 'fontWeight': 'bold', 'cursor': 'pointer'})
         ])
@@ -1231,11 +1258,12 @@ def handle_login(n_clicks, username, password, auth_data):
 @app.callback(
     [Output('auth-store', 'data', allow_duplicate=True),
      Output('url', 'pathname', allow_duplicate=True)],
-    [Input('logout-btn', 'n_clicks')],
+    [Input('logout-btn', 'n_clicks'),
+     Input('logout-btn-denied', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_logout(n_clicks):
-    if n_clicks:
+def handle_logout(n1, n2):
+    if n1 or n2:
         return {'logged_in': False, 'role': None, 'username': None}, '/login'
     return dash.no_update, dash.no_update
 
