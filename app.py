@@ -469,7 +469,7 @@ def render_sidebar():
         }
     )
 
-    # Botón de Cerrar Sesión
+    # Botón de cerrar sesión
     logout_button = html.Button(
         id='logout-btn',
         n_clicks=0,
@@ -520,7 +520,7 @@ def render_panel_principal():
             html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': 'var(--text-muted)', 'fontSize': '14px'})
         ]),
         
-        # Selectores
+        #Selectores
         html.Div(style={
             'display': 'flex',
             'gap': '20px',
@@ -550,7 +550,7 @@ def render_panel_principal():
 
         html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
 
-        # Tarjetas de Métricas (KPIs)
+        # Tarjetas de métricas (KPIs)
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Estudiantes Inscritos", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -590,7 +590,7 @@ def render_panel_principal():
         ])
     ])
 
-def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
+def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_seleccionado=None):
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
     text_color = '#000B52' if is_light else '#ffffff'
@@ -603,7 +603,13 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
             dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': 'bold', 'textDecoration': 'none'})
         ])
     
-    registro = df[df['nombre_alumno'] == nombre_alumno]
+    # lectura  del curso en el perfil
+    if curso_seleccionado:
+        registro = df[(df['nombre_alumno'] == nombre_alumno) & (df['curso'] == curso_seleccionado)]
+        if registro.empty:
+            registro = df[df['nombre_alumno'] == nombre_alumno]
+    else:
+        registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty: 
         return html.Div(style={'padding': '40px', 'textAlign': 'center'}, children=[
             html.H2("Estudiante no encontrado.", style={'color': '#FF4D4D'}),
@@ -644,7 +650,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
                 recursamiento_text = "Ordinario" if recursamiento_val == 1 else f"Recursamiento ({recursamiento_val}a vez)"
                 info_grupo_text = f" | Segmento: {carrera_name} (Ingreso {anio}, Cuatri {cuatrimestre}, {recursamiento_text})"
 
-    # Contenedor de carga para OpenAI
+    #Contenedor de carga para OpenAI
     ia_container = dcc.Loading(
         id="loading-ia",
         type="circle",
@@ -652,7 +658,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
         children=html.Div(id="diagnostico-ia-target")
     )
 
-    # Construcción de Gráficas de Desempeño Individual del Estudiante 
+    #Construcción de gráficas de desempeño individual del estudiante 
     unidades = ['Unidad 1', 'Unidad 2', 'Unidad 3', 'Unidad 4', 'Examen Final']
     offsets = [-0.6, 0.4, -0.2, 0.5, round((nota * 0.1), 1)]
     notas_unidades = [min(10.0, max(0.0, round(nota + off, 1))) for off in offsets]
@@ -720,11 +726,14 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
                     html.Span("ACTIVO", style={'backgroundColor': 'rgba(0, 128, 0, 0.15)', 'color': COLOR_VERDE_BANDERA, 'border': '1px solid rgba(0, 128, 0, 0.35)', 'padding': '2px 10px', 'borderRadius': '20px', 'fontSize': '11px', 'fontWeight': '700', 'letterSpacing': '0.5px'})
                 ]),
                 html.P(f"Carrera: {carrera}", style={'margin': '6px 0 2px 0', 'color': 'var(--text-muted)', 'fontSize': '14px'}),
-                html.P(f"Curso: {curso} | Grupo: {grupo}{info_grupo_text}", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
+                html.P([
+                    html.Strong("Asignatura Auditada: ", style={'color': 'var(--accent-color)'}), f"{curso} ",
+                    html.Span(f"| Grupo: {grupo}{info_grupo_text}", style={'marginLeft': '8px'})
+                ], style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'})
             ])
         ]),
 
-        # KPIs del Alumno
+        # KPIs del alumno
         html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 html.P("Calificación Acumulada", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
@@ -748,7 +757,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
             ])
         ]),
 
-        # Bloque de Insights de IA 
+        # Bloque de insights de IA 
         html.Div(className='ai-insights-card', style={'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px'}, children=[
             html.Div(style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'marginBottom': '20px'}, children=[
                 html.H3("Diagnóstico Pedagógico y Predicción por IA", style={'color': 'var(--accent-color)', 'margin': '0', 'fontSize': '18px', 'fontWeight': '600'})
@@ -756,7 +765,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme'):
             ia_container
         ]),
 
-        # Bloque de Visualizaciones de Rendimiento Individual DEBAJO del Diagnóstico de IA
+        # Bloque de vsualizaciones de rendimiento individual con el diagnóstico de IA
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 dcc.Graph(figure=fig_indiv_progreso, config={'displayModeBar': False})
@@ -835,16 +844,31 @@ def controlar_rutas(pathname, theme_class, auth_data):
     if not pathname or pathname == '/': 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
-        nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-        return render_panel_individual(nombre_alumno, theme_class)
+        # Devuelve un contenedor vacío para evitar dependencias circulares con State
+        return html.Div(id='individual-profile-container')
     return html.Div("404 - Ruta no válida")
+
+# Nuevo Callback para poblar el perfil individual sin bloquear la ruta
+@app.callback(
+    Output('individual-profile-container', 'children'),
+    [Input('url', 'pathname')],
+    [State('curso-dropdown', 'value'),
+     State('main-container', 'className')]
+)
+def populate_individual_profile(pathname, curso_seleccionado, theme_class):
+    if not pathname or not pathname.startswith('/alumno/'):
+        return dash.no_update
+        
+    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
+    return render_panel_individual(nombre_alumno, theme_class, curso_seleccionado)
 
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
     Output('diagnostico-ia-target', 'children'),
-    Input('url', 'pathname')
+    [Input('url', 'pathname')],
+    [State('curso-dropdown', 'value')]
 )
-def cargar_diagnostico_ia(pathname):
+def cargar_diagnostico_ia(pathname, curso_seleccionado):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
@@ -854,7 +878,12 @@ def cargar_diagnostico_ia(pathname):
     if df.empty:
         return html.P("Base de datos no cargada.", style={'color': '#FF4D4D'})
         
-    registro = df[df['nombre_alumno'] == nombre_alumno]
+    if curso_seleccionado:
+        registro = df[(df['nombre_alumno'] == nombre_alumno) & (df['curso'] == curso_seleccionado)]
+        if registro.empty:
+            registro = df[df['nombre_alumno'] == nombre_alumno]
+    else:
+        registro = df[df['nombre_alumno'] == nombre_alumno]
     if registro.empty:
         return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
         
@@ -1063,7 +1092,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         font=dict(family="Outfit, sans-serif", color=text_color)
     )
     
-    # Gráfico de barras
+    #gráfico de barras
     fig_bar = px.bar(
         df_render, 
         x='nombre_alumno', 
