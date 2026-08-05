@@ -883,31 +883,19 @@ def controlar_rutas(pathname, theme_class, auth_data):
     if not pathname or pathname == '/': 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
-        # Devuelve un contenedor vacío para evitar dependencias circulares con State
-        return html.Div(id='individual-profile-container')
+        from urllib.parse import unquote
+        nombre_estudiante = unquote(pathname.split('/')[-1])
+        return render_panel_individual(nombre_estudiante, theme_class, curso_seleccionado=None)
     return html.Div("404 - Ruta no válida")
 
-# Nuevo Callback para poblar el perfil individual sin bloquear la ruta
-@app.callback(
-    Output('individual-profile-container', 'children'),
-    [Input('url', 'pathname')],
-    [State('curso-dropdown', 'value'),
-     State('main-container', 'className')]
-)
-def populate_individual_profile(pathname, curso_seleccionado, theme_class):
-    if not pathname or not pathname.startswith('/alumno/'):
-        return dash.no_update
-        
-    nombre_alumno = urllib.parse.unquote(pathname.split('/alumno/')[1])
-    return render_panel_individual(nombre_alumno, theme_class, curso_seleccionado)
+
 
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
     Output('diagnostico-ia-target', 'children'),
-    [Input('url', 'pathname')],
-    [State('curso-dropdown', 'value')]
+    [Input('url', 'pathname')]
 )
-def cargar_diagnostico_ia(pathname, curso_seleccionado):
+def cargar_diagnostico_ia(pathname):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
@@ -920,12 +908,7 @@ def cargar_diagnostico_ia(pathname, curso_seleccionado):
     nombre_limpio = urllib.parse.unquote(str(nombre_alumno)).strip().lower()
     df_nombres_norm = df['nombre_alumno'].astype(str).str.strip().str.lower()
         
-    if curso_seleccionado:
-        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
-        if registro.empty:
-            registro = df[df_nombres_norm == nombre_limpio]
-    else:
-        registro = df[df_nombres_norm == nombre_limpio]
+    registro = df[df_nombres_norm == nombre_limpio]
     if registro.empty:
         return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
         
