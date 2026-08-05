@@ -158,6 +158,28 @@ def obtener_datos_moodle_live():
                 if not isinstance(data_curso, dict) or 'tables' not in data_curso: 
                     continue
                 
+                # Consultar usuarios matriculados para extraer el grupo REAL al que pertenecen
+                user_groups = {}
+                param_enrol = {
+                    'wstoken': token_moodle,
+                    'wsfunction': 'core_enrol_get_enrolled_users',
+                    'moodlewsrestformat': 'json',
+                    'courseid': course_id
+                }
+                try:
+                    res_enrol = requests.get(URL_MOODLE, params=param_enrol, timeout=60).json()
+                    if isinstance(res_enrol, list):
+                        for user in res_enrol:
+                            uid = user.get('id')
+                            groups_list = user.get('groups', [])
+                            if groups_list and isinstance(groups_list, list):
+                                # tomar el primer grupo como principal
+                                g_names = [g.get('name', '').strip() for g in groups_list if g.get('name')]
+                                if g_names:
+                                    user_groups[uid] = g_names[0].upper()
+                except Exception as e:
+                    print(f"Advertencia: No se pudieron obtener grupos reales del curso {course_id}: {e}")
+                
                 for tabla_usuario in data_curso.get('tables', []):
                     user_fullname = tabla_usuario.get('userfullname', '').strip().upper()
                     userid = tabla_usuario.get('userid', 0)
@@ -191,34 +213,7 @@ def obtener_datos_moodle_live():
                             except:
                                 nota_final = 0.0
 
-                        #contabilizar puntuaciones para clasificación DSM y IRD
-                        if es_propedeutico_dtic and grade_text and '-' not in grade_text:
-                            if 'desarrollo' in item_text or 'dsm' in item_text:
-                                dsm_score += 1
-                            elif 'redes' in item_text or 'cisco' in item_text or 'huawei' in item_text or 'ird' in item_text:
-                                ird_score += 1
-
-                    #segmentación de grupos para Propedéutico DTIC
-                    grupo_detectado = "SIN GRUPO ASIGNADO"
-                    if es_propedeutico_dtic:
-                        if ird_score > dsm_score:
-                            es_dsm = False
-                        elif dsm_score > ird_score:
-                            es_dsm = True
-                        else:
-                            #en caso de empate o sin entregas, clasificar por paridad del ID de usuario
-                            es_dsm = (userid % 2 == 0)
-
-                        #asignar grupo 
-                        h = sum(ord(char) for char in user_fullname)
-                        recursamiento = 1 if h % 3 != 0 else 2  # 1: Ordinario, 2: Recursamiento
-                        
-                        if es_dsm:
-                            grupo_detectado = f"DSM 2026-3-{recursamiento}"
-                        else:
-                            grupo_detectado = f"IRD 2026-3-{recursamiento}"
-                    else:
-                        grupo_detectado = nombre_curso.strip().upper()
+                    grupo_detectado = user_groups.get(userid, "SIN GRUPO ASIGNADO")
 
                     lista_completa_alumnos.append({
                         'carrera': nombre_carrera,
