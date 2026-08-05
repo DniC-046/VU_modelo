@@ -279,6 +279,8 @@ def obtener_datos_procesados():
             records = data.get('records', [])
             if records:
                 _cached_df = pd.DataFrame(records)
+                if 'grupo' in _cached_df.columns:
+                    _cached_df['grupo'] = _cached_df['grupo'].fillna("SIN GRUPO ASIGNADO").astype(str).str.strip()
                 _cached_mtime = mtime
                 print(f"Caché: Recargados {len(_cached_df)} registros desde el almacenamiento local.")
             else:
@@ -550,7 +552,7 @@ def render_panel_principal():
             ]),
             html.Div(style={'flex': '1'}, children=[
                 html.Label("Buscar Estudiante:", style={'fontWeight': '600', 'display': 'block', 'marginBottom': '8px', 'color': 'var(--text-muted)', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '1px'}),
-                dcc.Input(id='busqueda-input', type='text', placeholder="Escribe nombre...", className='Select-control', style={'width': '100%', 'height': '38px', 'borderRadius': '4px', 'border': '1px solid var(--border-color)', 'backgroundColor': 'var(--card-bg)', 'color': 'var(--text-color)', 'paddingLeft': '10px', 'boxSizing': 'border-box'})
+                dcc.Dropdown(id='busqueda-input', placeholder="Escribe nombre...", className='custom-dropdown', persistence=True, persistence_type='session', searchable=True, clearable=True)
             ]),
         ]),
 
@@ -912,13 +914,13 @@ def cargar_diagnostico_ia(pathname):
 
 @app.callback(
     [Output('carrera-dropdown', 'options'), Output('curso-dropdown', 'options'), Output('grupo-dropdown', 'options'),
-     Output('trigger-inicial', 'disabled')],
-    [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value')]
+     Output('busqueda-input', 'options'), Output('trigger-inicial', 'disabled')],
+    [Input('trigger-inicial', 'n_intervals'), Input('carrera-dropdown', 'value'), Input('curso-dropdown', 'value'), Input('grupo-dropdown', 'value')]
 )
-def manejar_filtros(n, carrera_sel, curso_sel):
+def manejar_filtros(n, carrera_sel, curso_sel, grupo_sel):
     df = obtener_datos_procesados()
     if df is None or df.empty: 
-        return [], [], [], False
+        return [], [], [], [], False
 
     op_carreras = [{'label': c, 'value': c} for c in sorted(df['carrera'].unique())]
     
@@ -943,7 +945,12 @@ def manejar_filtros(n, carrera_sel, curso_sel):
             
         op_grupos.append({'label': label_text, 'value': g_str})
 
-    return op_carreras, op_cursos, op_grupos, True
+    if grupo_sel:
+        df_f = df_f[df_f['grupo'] == grupo_sel]
+        
+    op_alumnos = [{'label': str(nombre), 'value': str(nombre)} for nombre in sorted(df_f['nombre_alumno'].dropna().unique())]
+
+    return op_carreras, op_cursos, op_grupos, op_alumnos, True
 
 @app.callback(
     [Output('main-container', 'className'),
@@ -1100,7 +1107,10 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
         elementos_tabla.append(
             html.Div(className='student-row', style={'padding': '12px 16px', 'borderBottom': '1px solid var(--border-color)', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'backgroundColor': 'var(--card-bg)', 'borderRadius': '6px', 'marginBottom': '4px'}, children=[
                 dcc.Link(nombre, href=f"/alumno/{urllib.parse.quote(nombre)}", className='student-link'),
-                html.Span(f"{fila['calificacion_final']:.1f} pts", style={'color': 'var(--text-color)', 'fontWeight': 'bold', 'fontSize': '14px'})
+                html.Div(style={'display': 'flex', 'gap': '15px', 'alignItems': 'center'}, children=[
+                    html.Span(f"Grupo: {fila['grupo']}", style={'color': 'var(--text-muted)', 'fontSize': '12px', 'backgroundColor': 'rgba(255,255,255,0.05)', 'padding': '4px 8px', 'borderRadius': '4px'}),
+                    html.Span(f"{fila['calificacion_final']:.1f} pts", style={'color': 'var(--text-color)', 'fontWeight': 'bold', 'fontSize': '14px'})
+                ])
             ])
         )
 
