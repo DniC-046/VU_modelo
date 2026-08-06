@@ -1229,7 +1229,7 @@ def handle_login(n_clicks, username, password, auth_data):
     if username in keyword_students or password_check in keyword_students:
         return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
 
-    #Verificar credenciales (Usuario y Contraseña) contra Moodle
+    #Verificar credenciales (Usuario y Contraseña)
     login_url = URL_MOODLE.replace("/webservice/rest/server.php", "/login/token.php")
     login_params = {
         'username': username,
@@ -1354,18 +1354,6 @@ def update_user_header(auth_data):
         'border': '1px solid var(--border-color)',
         'boxShadow': '0 2px 8px var(--shadow-color)'
     }, children=[
-        html.Div(style={
-            'width': '35px',
-            'height': '35px',
-            'borderRadius': '50%',
-            'backgroundColor': 'var(--accent-color)',
-            'color': '#ffffff',
-            'display': 'flex',
-            'alignItems': 'center',
-            'justifyContent': 'center',
-            'fontWeight': 'bold',
-            'fontSize': '16px'
-        }, children=nombre[0].upper() if nombre else "U"),
         html.Div(children=[
             html.Span("Bienvenido(a),", style={'display': 'block', 'fontSize': '11px', 'color': 'var(--text-muted)', 'marginBottom': '2px', 'lineHeight': '1'}),
             html.Span(nombre, style={'display': 'block', 'fontSize': '14px', 'fontWeight': '600', 'color': 'var(--text-color)', 'lineHeight': '1'})
