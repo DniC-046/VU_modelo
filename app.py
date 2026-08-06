@@ -1084,8 +1084,6 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     if carrera_sel: df_render = df_render[df_render['carrera'] == carrera_sel]
     if curso_sel: df_render = df_render[df_render['curso'] == curso_sel]
     if grupo_sel: df_render = df_render[df_render['grupo'] == grupo_sel]
-    if busqueda_sel:
-        df_render = df_render[df_render['nombre_alumno'].str.contains(busqueda_sel.strip().upper(), na=False)]
 
     if df_render.empty:
         return {}, {}, html.Div("Por favor seleccione un filtro válido en la barra superior para desplegar la lista de alumnos.", style={'color': '#888'}), "", "0", "0.0", "0", "0.0% del total", "0", "0.0% del total"
@@ -1228,6 +1226,26 @@ def redirigir_alumno(clickData, carrera_sel, curso_sel, current_path):
             return f"/alumno/{urllib.parse.quote(nombre)}", search_str
         except Exception as e:
             print(f"Error en redirección clickData: {e}")
+    return dash.no_update, dash.no_update
+
+#callback de redirección al seleccionar un alumno en la barra de búsqueda
+@app.callback(
+    [Output('url', 'pathname', allow_duplicate=True),
+     Output('url', 'search', allow_duplicate=True)],
+    Input('busqueda-input', 'value'),
+    [State('carrera-dropdown', 'value'),
+     State('curso-dropdown', 'value')],
+    prevent_initial_call=True
+)
+def redirigir_desde_busqueda(busqueda_sel, carrera_sel, curso_sel):
+    if busqueda_sel:
+        nombre = str(busqueda_sel).strip().upper()
+        import urllib.parse
+        params = {}
+        if curso_sel: params['curso'] = str(curso_sel)
+        if carrera_sel: params['division'] = str(carrera_sel)
+        search_str = "?" + urllib.parse.urlencode(params) if params else ""
+        return f"/alumno/{urllib.parse.quote(nombre)}", search_str
     return dash.no_update, dash.no_update
 
 #control de layout (Sidebar y Margen) según autenticación
