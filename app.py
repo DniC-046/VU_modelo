@@ -670,7 +670,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_selec
         partes = nombre_alumno.split()
         iniciales = "".join([p[0] for p in partes if p][:2])
     
-        # Lógica de segmentación del grupo propedéutico para la vista individual
+        #segmentación del grupo propedéutico para la vista individual
         info_grupo_text = ""
         es_propedeutico = "PROPEDÉUTICO" in curso or "PROP" in curso
         if grupo and grupo != "SIN GRUPO ASIGNADO" and es_propedeutico:
@@ -884,7 +884,7 @@ def controlar_rutas(pathname, theme_class, auth_data):
     if not has_access:
         return render_access_denied_screen(auth_data.get('username', 'Desconocido'))
 
-    if not pathname or pathname == '/': 
+    if not pathname or pathname in ['/', '/login']: 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
         from urllib.parse import unquote
@@ -1205,7 +1205,8 @@ def update_layout_auth(auth_data):
 #manejo de Login y Logout
 @app.callback(
     [Output('auth-store', 'data', allow_duplicate=True),
-     Output('login-error', 'children')],
+     Output('login-error', 'children'),
+     Output('url', 'pathname', allow_duplicate=True)],
     [Input('login-submit-btn', 'n_clicks')],
     [State('login-username', 'value'),
      State('login-password', 'value'),
@@ -1214,7 +1215,7 @@ def update_layout_auth(auth_data):
 )
 def handle_login(n_clicks, username, password, auth_data):
     if not n_clicks or not username or not password:
-        return dash.no_update, ""
+        return dash.no_update, "", dash.no_update
     
     username = username.strip().lower()
     password_check = password.strip().lower()
@@ -1224,10 +1225,10 @@ def handle_login(n_clicks, username, password, auth_data):
     keyword_students = ["alumno", "estudiante"]
     
     if username in keyword_teachers or password_check in keyword_teachers:
-        return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, ""
+        return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, "", "/"
         
     if username in keyword_students or password_check in keyword_students:
-        return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC."
+        return dash.no_update, "Acceso Denegado: Esta plataforma está reservada exclusivamente para personal docente y administrativo de la UTTEC.", dash.no_update
 
     #Verificar credenciales (Usuario y Contraseña)
     login_url = URL_MOODLE.replace("/webservice/rest/server.php", "/login/token.php")
@@ -1240,11 +1241,11 @@ def handle_login(n_clicks, username, password, auth_data):
     try:
         token_res = requests.post(login_url, data=login_params, timeout=15).json()
         if 'error' in token_res:
-            return dash.no_update, "Credenciales incorrectas. Verifique su usuario y contraseña."
+            return dash.no_update, "Credenciales incorrectas. Verifique su usuario y contraseña.", dash.no_update
         if 'token' not in token_res:
-            return dash.no_update, "Error en la autenticación. No se pudo obtener validación de Moodle."
+            return dash.no_update, "Error en la autenticación. No se pudo obtener validación de Moodle.", dash.no_update
     except requests.exceptions.RequestException as e:
-        return dash.no_update, f"Error al verificar credenciales con Moodle: {e}"
+        return dash.no_update, f"Error al verificar credenciales con Moodle: {e}", dash.no_update
 
     token_moodle = os.environ.get("MOODLE_TOKEN")
     
@@ -1264,10 +1265,10 @@ def handle_login(n_clicks, username, password, auth_data):
         if isinstance(res_user, dict) and res_user.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
-            return dash.no_update, error_msg
+            return dash.no_update, error_msg, dash.no_update
             
         if not res_user or not isinstance(res_user, list) or len(res_user) == 0:
-            return dash.no_update, "El usuario no existe en la base de datos de Moodle."
+            return dash.no_update, "El usuario no existe en la base de datos de Moodle.", dash.no_update
             
         user_id = res_user[0].get('id')
         
@@ -1284,7 +1285,7 @@ def handle_login(n_clicks, username, password, auth_data):
         if isinstance(res_roles, dict) and res_roles.get('exception') == 'webservice_access_exception':
             error_msg = ("Error de Permisos en Moodle: El token requiere las siguientes capacidades activas: "
                          "'moodle/user:viewdetails', 'moodle/course:viewparticipants', 'gradereport/user:view'.")
-            return dash.no_update, error_msg
+            return dash.no_update, error_msg, dash.no_update
             
         #buscar al usuario y evaluar sus roles
         allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
@@ -1303,10 +1304,10 @@ def handle_login(n_clicks, username, password, auth_data):
                     break
         
         new_auth = {'logged_in': True, 'role': role_assigned, 'username': username}
-        return new_auth, ""
+        return new_auth, "", "/"
         
     except requests.exceptions.RequestException as e:
-        return dash.no_update, f"Error de conexión con el servidor Moodle: {e}"
+        return dash.no_update, f"Error de conexión con el servidor Moodle: {e}", dash.no_update
 
 @app.callback(
     [Output('auth-store', 'data', allow_duplicate=True),
