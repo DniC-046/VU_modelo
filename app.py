@@ -620,7 +620,7 @@ def render_panel_principal():
         ])
     ])
 
-def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_seleccionado=None):
+def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_seleccionado=None, division_seleccionada=None):
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
     text_color = '#000B52' if is_light else '#ffffff'
@@ -638,11 +638,14 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_selec
     df_nombres_norm = df['nombre_alumno'].astype(str).str.strip().str.lower()
 
     # lectura del curso en el perfil
-    if curso_seleccionado:
-        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+    if curso_seleccionado and division_seleccionada:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado) & (df['carrera'] == division_seleccionada)]
         if registro.empty:
-            registro = df[df_nombres_norm == nombre_limpio]
-    else:
+            registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+    elif curso_seleccionado:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+        
+    if 'registro' not in locals() or registro.empty:
         registro = df[df_nombres_norm == nombre_limpio]
         
     if registro.empty: 
@@ -654,8 +657,8 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_selec
     try:
         datos = registro.iloc[0]
         nota = datos['calificacion_final']
-        carrera = datos['carrera']
-        curso = datos['curso']
+        carrera = division_seleccionada if division_seleccionada else datos['carrera']
+        curso = curso_seleccionado if curso_seleccionado else datos['curso']
         grupo = datos['grupo']
         
         #calcular promedios del grupo
@@ -864,10 +867,11 @@ def render_access_denied_screen(username):
 @app.callback(
     Output('page-content', 'children'),
     [Input('url', 'pathname'),
+     Input('url', 'search'),
      Input('main-container', 'className'),
      Input('auth-store', 'data')]
 )
-def controlar_rutas(pathname, theme_class, auth_data):
+def controlar_rutas(pathname, search, theme_class, auth_data):
     if not auth_data or not auth_data.get('logged_in'):
         return render_login_screen()
     
@@ -887,9 +891,19 @@ def controlar_rutas(pathname, theme_class, auth_data):
     if not pathname or pathname in ['/', '/login']: 
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
-        from urllib.parse import unquote
+        from urllib.parse import unquote, parse_qs
         nombre_estudiante = unquote(pathname.split('/')[-1])
-        return render_panel_individual(nombre_estudiante, theme_class, curso_seleccionado=None)
+        
+        curso_seleccionado = None
+        division_seleccionada = None
+        if search:
+            qs = parse_qs(search.lstrip('?'))
+            if 'curso' in qs:
+                curso_seleccionado = unquote(qs['curso'][0])
+            if 'division' in qs:
+                division_seleccionada = unquote(qs['division'][0])
+                
+        return render_panel_individual(nombre_estudiante, theme_class, curso_seleccionado, division_seleccionada)
     return html.Div("404 - Ruta no válida")
 
 
@@ -897,9 +911,10 @@ def controlar_rutas(pathname, theme_class, auth_data):
 # Callback asíncrono para cargar el diagnóstico de IA
 @app.callback(
     Output('diagnostico-ia-target', 'children'),
-    [Input('url', 'pathname')]
+    [Input('url', 'pathname'),
+     Input('url', 'search')]
 )
-def cargar_diagnostico_ia(pathname):
+def cargar_diagnostico_ia(pathname, search):
     if not pathname or not pathname.startswith('/alumno/'):
         return dash.no_update
         
@@ -912,7 +927,26 @@ def cargar_diagnostico_ia(pathname):
     nombre_limpio = urllib.parse.unquote(str(nombre_alumno)).strip().lower()
     df_nombres_norm = df['nombre_alumno'].astype(str).str.strip().str.lower()
         
-    registro = df[df_nombres_norm == nombre_limpio]
+    curso_seleccionado = None
+    division_seleccionada = None
+    if search:
+        from urllib.parse import parse_qs
+        qs = parse_qs(search.lstrip('?'))
+        if 'curso' in qs:
+            curso_seleccionado = urllib.parse.unquote(qs['curso'][0])
+        if 'division' in qs:
+            division_seleccionada = urllib.parse.unquote(qs['division'][0])
+            
+    if curso_seleccionado and division_seleccionada:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado) & (df['carrera'] == division_seleccionada)]
+        if registro.empty:
+            registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+    elif curso_seleccionado:
+        registro = df[(df_nombres_norm == nombre_limpio) & (df['curso'] == curso_seleccionado)]
+        
+    if 'registro' not in locals() or registro.empty:
+        registro = df[df_nombres_norm == nombre_limpio]
+        
     if registro.empty:
         return html.P("Estudiante no encontrado.", style={'color': '#FF4D4D'})
         
@@ -1146,10 +1180,17 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     #contenedor nominal de alumnos matriculados
     elementos_tabla = []
     for _, fila in df_render.iterrows():
-        nombre = fila['nombre_alumno']
+        nombre = str(fila['nombre_alumno'])
+        
+        import urllib.parse
+        params = {}
+        if curso: params['curso'] = str(curso)
+        if carrera: params['division'] = str(carrera)
+        query_str = "?" + urllib.parse.urlencode(params) if params else ""
+        
         elementos_tabla.append(
             html.Div(className='student-row', style={'padding': '12px 16px', 'borderBottom': '1px solid var(--border-color)', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'backgroundColor': 'var(--card-bg)', 'borderRadius': '6px', 'marginBottom': '4px'}, children=[
-                dcc.Link(nombre, href=f"/alumno/{urllib.parse.quote(nombre)}", className='student-link'),
+                dcc.Link(nombre, href=f"/alumno/{urllib.parse.quote(nombre)}{query_str}", className='student-link'),
                 html.Div(style={'display': 'flex', 'gap': '15px', 'alignItems': 'center'}, children=[
                     html.Span(f"Grupo: {fila['grupo']}", style={'color': 'var(--text-muted)', 'fontSize': '12px', 'backgroundColor': 'rgba(255,255,255,0.05)', 'padding': '4px 8px', 'borderRadius': '4px'}),
                     html.Span(f"{fila['calificacion_final']:.1f} pts", style={'color': 'var(--text-color)', 'fontWeight': 'bold', 'fontSize': '14px'})
@@ -1166,19 +1207,28 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
 
 #callback interactivo de redirección al hacer click sobre el gráfico de barras
 @app.callback(
-    Output('url', 'pathname', allow_duplicate=True),
+    [Output('url', 'pathname', allow_duplicate=True),
+     Output('url', 'search', allow_duplicate=True)],
     Input('grafico-barras-general', 'clickData'),
-    State('url', 'pathname'),
+    [State('carrera-dropdown', 'value'),
+     State('curso-dropdown', 'value'),
+     State('url', 'pathname')],
     prevent_initial_call=True
 )
-def redirigir_alumno(clickData, current_path):
+def redirigir_alumno(clickData, carrera_sel, curso_sel, current_path):
     if clickData and current_path == '/':
         try:
-            nombre = clickData['points'][0]['x']
-            return f"/alumno/{urllib.parse.quote(nombre)}"
+            nombre = str(clickData['points'][0]['x'])
+            import urllib.parse
+            params = {}
+            if curso_sel: params['curso'] = str(curso_sel)
+            if carrera_sel: params['division'] = str(carrera_sel)
+            search_str = "?" + urllib.parse.urlencode(params) if params else ""
+            
+            return f"/alumno/{urllib.parse.quote(nombre)}", search_str
         except Exception as e:
             print(f"Error en redirección clickData: {e}")
-    return dash.no_update
+    return dash.no_update, dash.no_update
 
 #control de layout (Sidebar y Margen) según autenticación
 @app.callback(
