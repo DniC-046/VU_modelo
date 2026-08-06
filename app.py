@@ -541,11 +541,15 @@ app.layout = html.Div(id='main-container', className='dark-theme', children=[
 def render_panel_principal():
     return html.Div(children=[
         #encabezado limpio
-        html.Div(style={'borderBottom': '1px solid var(--border-color)', 'paddingBottom': '20px', 'marginBottom': '30px'}, children=[
-            html.H1("Analítica del curso", style={'margin': '0', 'color': 'var(--text-color)', 'fontWeight': '700', 'fontSize': '28px'}),
-            html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': 'var(--text-muted)', 'fontSize': '14px'})
+        html.Div(style={'borderBottom': '1px solid var(--border-color)', 'paddingBottom': '20px', 'marginBottom': '30px', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'}, children=[
+            html.Div(children=[
+                html.H1("Analítica del curso", style={'margin': '0', 'color': 'var(--text-color)', 'fontWeight': '700', 'fontSize': '28px'}),
+                html.P("Visualiza el desempeño y avance de los estudiantes", style={'margin': '5px 0 0 0', 'color': 'var(--text-muted)', 'fontSize': '14px'})
+            ]),
+            html.Div(id='user-profile-header', className='d-flex align-items-center gap-2')
         ]),
         
+
         #Selectores
         html.Div(style={
             'display': 'flex',
@@ -654,7 +658,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_selec
         curso = datos['curso']
         grupo = datos['grupo']
         
-        # Calcular promedios del grupo
+        #calcular promedios del grupo
         df_grupo = df[(df['curso'] == curso) & (df['grupo'] == grupo)]
         promedio_grupo = df_grupo['calificacion_final'].mean() if not df_grupo.empty else 0.0
         calif_max = df_grupo['calificacion_final'].max() if not df_grupo.empty else 0.0
@@ -749,7 +753,7 @@ def render_panel_individual(nombre_alumno, theme_class='dark-theme', curso_selec
         return html.Div(children=[
             dcc.Link("Volver a la vista general", href="/", style={'color': 'var(--accent-color)', 'fontWeight': '600', 'textDecoration': 'none', 'display': 'inline-flex', 'alignItems': 'center', 'gap': '8px', 'marginBottom': '25px', 'transition': 'color 0.2s'}),
             
-            # Cabecera de identidad del estudiante
+            #identidad del estudiante
             html.Div(style={'backgroundColor': 'var(--card-bg)', 'padding': '30px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'marginBottom': '30px', 'display': 'flex', 'alignItems': 'center', 'gap': '25px'}, children=[
                 html.Div(style={'width': '80px', 'height': '80px', 'borderRadius': '50%', 'backgroundColor': COLOR_VERDE_BANDERA, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': '#ffffff', 'fontSize': '28px', 'fontWeight': '800', 'boxShadow': '0 4px 14px rgba(0, 128, 0, 0.4)'}, children=iniciales),
                 html.Div(style={'flex': '1'}, children=[
@@ -1325,6 +1329,48 @@ def handle_logout_denied(n_clicks):
     if n_clicks:
         return {'logged_in': False, 'role': None, 'username': None}, '/login'
     return dash.no_update, dash.no_update
+
+@app.callback(
+    Output('user-profile-header', 'children'),
+    [Input('auth-store', 'data')]
+)
+def update_user_header(auth_data):
+    if not auth_data or not auth_data.get('logged_in'):
+        nombre = "Profesor / Manager"
+    else:
+        nombre = auth_data.get('username', "Profesor / Manager")
+        # Si el nombre viene como correo
+        if '@' in nombre:
+            nombre = nombre.split('@')[0]
+        nombre = nombre.replace('.', ' ').title()
+        
+    return html.Div(style={
+        'display': 'flex',
+        'alignItems': 'center',
+        'gap': '12px',
+        'padding': '8px 16px',
+        'backgroundColor': 'var(--card-bg)',
+        'borderRadius': '30px',
+        'border': '1px solid var(--border-color)',
+        'boxShadow': '0 2px 8px var(--shadow-color)'
+    }, children=[
+        html.Div(style={
+            'width': '35px',
+            'height': '35px',
+            'borderRadius': '50%',
+            'backgroundColor': 'var(--accent-color)',
+            'color': '#ffffff',
+            'display': 'flex',
+            'alignItems': 'center',
+            'justifyContent': 'center',
+            'fontWeight': 'bold',
+            'fontSize': '16px'
+        }, children=nombre[0].upper() if nombre else "U"),
+        html.Div(children=[
+            html.Span("Bienvenido(a),", style={'display': 'block', 'fontSize': '11px', 'color': 'var(--text-muted)', 'marginBottom': '2px', 'lineHeight': '1'}),
+            html.Span(nombre, style={'display': 'block', 'fontSize': '14px', 'fontWeight': '600', 'color': 'var(--text-color)', 'lineHeight': '1'})
+        ])
+    ])
 
 if __name__ == '__main__':
     puerto = int(os.environ.get('PORT', 5000))
