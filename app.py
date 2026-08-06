@@ -14,7 +14,7 @@ import threading
 import time
 import re
 
-#Cargar variables de entorno 
+#cargar variables de entorno 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 if os.path.exists(dotenv_path):
     dotenv.load_dotenv(dotenv_path)
