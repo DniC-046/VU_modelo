@@ -540,7 +540,6 @@ app.layout = html.Div(id='main-container', className='dark-theme', children=[
 
 def render_panel_principal():
     return html.Div(children=[
-        #encabezado limpio
         html.Div(style={'borderBottom': '1px solid var(--border-color)', 'paddingBottom': '20px', 'marginBottom': '30px', 'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'}, children=[
             html.Div(children=[
                 html.H1("Analítica del curso", style={'margin': '0', 'color': 'var(--text-color)', 'fontWeight': '700', 'fontSize': '28px'}),
@@ -604,7 +603,7 @@ def render_panel_principal():
             ])
         ]),
 
-        # Gráficos
+        # graficos
         html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False, 'responsive': True})
@@ -1016,7 +1015,7 @@ def manejar_filtros(n, carrera_sel, curso_sel, grupo_sel):
     if curso_sel: 
         df_f = df_f[df_f['curso'] == curso_sel]
     
-    # Procesar grupos asegurando tipo string literal
+    # Procesar grupos tipo string
     op_grupos = []
     for g in sorted(df_f['grupo'].dropna().unique(), key=lambda x: str(x)):
         g_str = str(g).strip()
@@ -1115,11 +1114,16 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
                     'fontSize': '14px'
                 })
 
-    # Calcular KPIs del subgrupo
-    total_estudiantes = len(df_render)
-    promedio_gral = df_render['calificacion_final'].mean()
-    aprobados_df = df_render[df_render['calificacion_final'] >= 6.0]
-    riesgo_df = df_render[df_render['calificacion_final'] < 6.0]
+    # Calcular KPIs del subgrupo agrupando por estudiante único
+    df_unique = df_render.groupby('nombre_alumno', as_index=False).agg({
+        'calificacion_final': 'mean',
+        'grupo': 'first'
+    })
+    
+    total_estudiantes = len(df_unique)
+    promedio_gral = df_unique['calificacion_final'].mean()
+    aprobados_df = df_unique[df_unique['calificacion_final'] >= 6.0]
+    riesgo_df = df_unique[df_unique['calificacion_final'] < 6.0]
     
     total_aprobados = len(aprobados_df)
     total_riesgo = len(riesgo_df)
@@ -1127,7 +1131,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     pct_aprobados = (total_aprobados / total_estudiantes * 100) if total_estudiantes > 0 else 0
     pct_riesgo = (total_riesgo / total_estudiantes * 100) if total_estudiantes > 0 else 0
 
-    df_render['Estatus'] = df_render['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo (<6.0)')
+    df_unique['Estatus'] = df_unique['calificacion_final'].apply(lambda x: 'Aprobado (>=6.0)' if x >= 6.0 else 'Riesgo (<6.0)')
     
     is_light = (theme_class == 'light-theme')
     plotly_template = 'plotly_white' if is_light else 'plotly_dark'
@@ -1136,7 +1140,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
 
     # Gráfico de pastel
     fig_pie = px.pie(
-        df_render, 
+        df_unique, 
         names='Estatus', 
         title="Distribución de Estatus Académico", 
         color='Estatus',
@@ -1155,7 +1159,7 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     
     #gráfico de barras
     fig_bar = px.bar(
-        df_render, 
+        df_unique, 
         x='nombre_alumno', 
         y='calificacion_final', 
         title="Calificaciones Finales", 
@@ -1177,13 +1181,13 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
 
     #contenedor nominal de alumnos matriculados
     elementos_tabla = []
-    for _, fila in df_render.iterrows():
+    for _, fila in df_unique.iterrows():
         nombre = str(fila['nombre_alumno'])
         
         import urllib.parse
         params = {}
-        if curso: params['curso'] = str(curso)
-        if carrera: params['division'] = str(carrera)
+        if curso_sel: params['curso'] = str(curso_sel)
+        if carrera_sel: params['division'] = str(carrera_sel)
         query_str = "?" + urllib.parse.urlencode(params) if params else ""
         
         elementos_tabla.append(
