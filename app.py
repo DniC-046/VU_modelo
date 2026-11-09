@@ -161,10 +161,18 @@ MOODLE_WORKERS = max(1, min(6, int(os.environ.get('MOODLE_WORKERS', '3'))))
 MAX_COURSES = max(0, int(os.environ.get('MOODLE_MAX_COURSES', '0')))
 MAX_GRADE_USERS = max(0, int(os.environ.get('MOODLE_MAX_GRADE_USERS', '0')))
 MOODLE_GRADE_DETAILS_ALL = os.environ.get('MOODLE_GRADE_DETAILS_ALL', 'false').lower() in ('1', 'true', 'yes')
+# Evita miles de peticiones individuales al iniciar; primero se obtienen los reportes por curso.
+MOODLE_INDIVIDUAL_GRADE_LOOKUP = os.environ.get('MOODLE_INDIVIDUAL_GRADE_LOOKUP', 'false').lower() in ('1','true','yes')
 _cached_df = pd.DataFrame()
 _cached_mtime = -1.0
 _lock_datos = threading.RLock()
 _logger = logging.getLogger('uttec.moodle')
+_logger.setLevel(logging.INFO)
+if not _logger.handlers:
+    _console = logging.StreamHandler()
+    _console.setFormatter(logging.Formatter('%(asctime)s %(levelname)s uttec.moodle: %(message)s'))
+    _logger.addHandler(_console)
+_logger.propagate = False
 
 
 def _user_authorized():
@@ -384,22 +392,26 @@ def _marca_sincronizacion():
     return cat.get('last_synced') or 'Pendiente de sincronización'
 
 
-def obtener_datos_moodle_live():
-    """Lectura de datos reales. Conserva alumnos sin nota como NaN, sin inventar grupos."""
+def obtener_datos_moodle_live(progress_callback=None):
+    """Sincroniza por lotes: guarda pronto registros de Moodle, sin notas ni grupos ficticios.
+
+    progress_callback acepta (DataFrame, catalogo) y escribe cortes parciales en disco.
+    """
     categorias = _moodle_request('core_course_get_categories')
     cursos_raw = _moodle_request('core_course_get_courses')
     if not isinstance(categorias, list) or not isinstance(cursos_raw, list):
         raise RuntimeError('Moodle no devolvió categorías y cursos válidos')
     cats = {c.get('id'): c for c in categorias if isinstance(c, dict)}
+
     def division(cid):
-        nombres = []
-        visitados = set()
+        nombres, visitados = [], set()
         while cid in cats and cid not in visitados:
             visitados.add(cid)
             cat = cats[cid]
             nombres.append(clean_moodle_html(cat.get('name', '')))
             cid = cat.get('parent')
         return (nombres[-1] if nombres else 'SIN DIVISIÓN DISPONIBLE').upper()
+
     courses = []
     for course in cursos_raw:
         if not isinstance(course, dict) or not course.get('id') or int(course['id']) == 1:
@@ -411,148 +423,227 @@ def obtener_datos_moodle_live():
                         'url': f'{BASE_MOODLE}/course/view.php?id={int(course["id"])}'})
     if MAX_COURSES:
         courses = courses[:MAX_COURSES]
-    data = []
-    full_courses = []
-    errores = []
+    _logger.info('Moodle: %s cursos detectados. Iniciando lectura progresiva.', len(courses))
+    data, full_courses, errores = [], [], []
+    registros_solo_reporte, correct_enrol_calls = 0, 0
     cached_bulk_reports = {}
-    registros_solo_reporte = 0
-    # Una consulta por curso para matrículas. Nunca se inventa el grupo ni el estatus.
-    correct_enrol_calls = 0
-    for course in courses:
+    actividades, recursos, foros = [], [], []
+    consultas_notas_realizadas = 0
+
+    def snapshot(in_progress=True):
+        now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+        return {'last_synced': now, 'sync_in_progress': in_progress,
+                'courses': list(full_courses),
+                'activities': list(actividades), 'resources': list(recursos),
+                'forums': list(foros),
+                'total_matriculas': len(data) - registros_solo_reporte,
+                'registros_solo_reporte': registros_solo_reporte,
+                'consultas_notas': consultas_notas_realizadas,
+                'calificaciones_disponibles': sum(r['calificacion_final'] is not None for r in data),
+                'sin_calificacion': sum(r['calificacion_final'] is None for r in data),
+                'matriculas_por_consultar': len(courses) - correct_enrol_calls,
+                'errores': list(errores[:80]),
+                'cursos_consultados': len(full_courses),
+                'cursos_totales': len(courses),
+                'cursos_matriculas_consultadas': correct_enrol_calls}
+
+    def publish_progress(stage):
+        if progress_callback is not None:
+            progress_callback(pd.DataFrame(data), snapshot(in_progress=True))
+        _logger.info('%s: %s/%s cursos, %s registros, %s notas, %s fallos',
+                     stage, len(full_courses), len(courses), len(data),
+                     sum(r['calificacion_final'] is not None for r in data), len(errores))
+
+    # Consultar matrículas con un límite de concurrencia bajo para no saturar Moodle.
+    # Sin permisos de matrícula se utiliza únicamente el reporte que antes empleaba Odalys.
+    def cargar_curso(course):
         cid = course['id']
+        local_errors, local_data, report = [], [], None
         enrol_ok = False
         try:
-            enrolled = _moodle_request('core_enrol_get_enrolled_users', {'courseid': cid}, timeout=30)
+            enrolled = _moodle_request('core_enrol_get_enrolled_users', {'courseid': cid}, timeout=18)
             if not isinstance(enrolled, list):
                 raise RuntimeError('Formato de participantes inesperado')
             enrol_ok = True
-            correct_enrol_calls += 1
         except RuntimeError as exc:
-            if len(errores) < 80:
-                errores.append(f'Matrícula curso {cid}: {exc}')
+            local_errors.append(f'Matrícula curso {cid}: {exc}')
             enrolled = []
         students = [u for u in enrolled if isinstance(u, dict) and _es_estudiante(u)]
-        full_course = {**course,
-                       'matriculados': len(students) if enrol_ok else None,
-                       'estado_matriculas': 'Consultado' if enrol_ok else 'Sin permiso / error',
-                       'grupos': sorted(set(str(g.get('name', '')).strip() for u in students
-                                            for g in (u.get('groups') or []) if isinstance(g, dict) and g.get('name')))}
-        full_courses.append(full_course)
+        full = {**course,
+                'matriculados': len(students) if enrol_ok else None,
+                'estado_matriculas': 'Consultado' if enrol_ok else 'Sin permiso / error',
+                'grupos': sorted(set(str(g.get('name','')).strip() for u in students
+                                     for g in (u.get('groups') or [])
+                                     if isinstance(g, dict) and g.get('name')))}
         for u in students:
             groups = [clean_moodle_html(g.get('name')) for g in (u.get('groups') or [])
                       if isinstance(g, dict) and g.get('name')]
-            data.append({'user_id': u.get('id'), 'course_id': cid, 'carrera': course['carrera'],
-                         'curso': course['fullname'], 'grupo': groups[0].upper() if groups else 'SIN GRUPO ASIGNADO',
-                         'nombre_alumno': clean_moodle_html(u.get('fullname', '')).upper(),
-                         'calificacion_final': None, 'items_calificados': [],
-                         'origen': 'matricula_verificada'})
-        # Si el token no autoriza matrículas, intentar el informe de notas que
-        # ya se usa en el dashboard anterior. NO contar estas filas como matrículas.
+            local_data.append({'user_id': u.get('id'), 'course_id': cid,
+                               'carrera': course['carrera'], 'curso': course['fullname'],
+                               'grupo': groups[0].upper() if groups else 'SIN GRUPO ASIGNADO',
+                               'nombre_alumno': clean_moodle_html(u.get('fullname','')).upper(),
+                               'calificacion_final': None, 'items_calificados': [],
+                               'origen': 'matricula_verificada'})
         if not enrol_ok:
             try:
-                report = _moodle_request('gradereport_user_get_grades_table', {'courseid': cid}, timeout=35)
-                tables = report.get('tables', []) if isinstance(report, dict) else []
-                if not isinstance(tables, list):
-                    tables = []
-                cached_bulk_reports[cid] = report
+                report = _moodle_request('gradereport_user_get_grades_table', {'courseid': cid}, timeout=18)
+                tables = report.get('tables',[]) if isinstance(report,dict) else []
+                tables = tables if isinstance(tables,list) else []
                 for tab in tables:
-                    if not isinstance(tab, dict):
+                    if not isinstance(tab,dict):
                         continue
-                    nombre = clean_moodle_html(tab.get('userfullname', '')).upper()
+                    nombre = clean_moodle_html(tab.get('userfullname','')).upper()
                     if not nombre:
                         continue
-                    nota = _nota_tabla_moodle(tab)
-                    data.append({'user_id': tab.get('userid'), 'course_id': cid,
-                                 'carrera': course['carrera'], 'curso': course['fullname'],
-                                 'grupo': 'GRUPO NO DISPONIBLE', 'nombre_alumno': nombre,
-                                 'calificacion_final': nota, 'items_calificados': [],
-                                 'origen': 'reporte_calificaciones'})
-                    registros_solo_reporte += 1
+                    local_data.append({'user_id': tab.get('userid'), 'course_id': cid,
+                                       'carrera': course['carrera'], 'curso': course['fullname'],
+                                       'grupo': 'GRUPO NO DISPONIBLE', 'nombre_alumno': nombre,
+                                       'calificacion_final': _nota_tabla_moodle(tab),
+                                       'items_calificados': [], 'origen': 'reporte_calificaciones'})
                 if tables:
-                    full_course['estado_matriculas'] = 'Informe de calificaciones; matrícula no verificada'
-                    full_course['registros_de_reporte'] = len(tables)
+                    full['estado_matriculas'] = 'Informe de calificaciones; matrícula no verificada'
+                    full['registros_de_reporte'] = len(tables)
             except RuntimeError as exc:
+                local_errors.append(f'Informe curso {cid}: {exc}')
+        return full, local_data, enrol_ok, report, local_errors
+
+    with ThreadPoolExecutor(max_workers=MOODLE_WORKERS) as executor:
+        futures = {executor.submit(cargar_curso, c): c for c in courses}
+        for future in as_completed(futures):
+            course = futures[future]
+            try:
+                full, rows, enrol_ok, report, local_errors = future.result()
+                full_courses.append(full)
+                data.extend(rows)
+                correct_enrol_calls += int(enrol_ok)
+                registros_solo_reporte += sum(r['origen'] == 'reporte_calificaciones' for r in rows)
+                if report is not None:
+                    cached_bulk_reports[course['id']] = report
+                for err in local_errors:
+                    if len(errores) < 80:
+                        errores.append(err)
+            except Exception as exc:
                 if len(errores) < 80:
-                    errores.append(f'Informe curso {cid}: {exc}')
-    # Optimización: algunas instalaciones autorizan informes de todos los usuarios
-    # mediante una sola llamada gradereport_user_get_grades_table por curso.
+                    errores.append(f'Curso {course["id"]}: {type(exc).__name__}')
+                full_courses.append({**course, 'matriculados': None,
+                                     'grupos':[], 'estado_matriculas':'Error'})
+            if len(full_courses) == 1 or len(full_courses) % 5 == 0:
+                publish_progress('Matrículas')
+    publish_progress('Matrículas completas')
+
+    # Si no hay permiso de ningún tipo, explicar el error en los logs y al usuario.
+    if not data and courses:
+        _logger.warning('Sin registros: revisa en Logs los errores de Moodle y permisos del token.')
+
     indices_por_curso = {}
-    bulk_confirmed = set()
     for index, registro in enumerate(data):
         if registro.get('user_id') is not None:
             indices_por_curso.setdefault(registro['course_id'], {})[str(registro['user_id'])] = index
-        if registro.get('calificacion_final') is not None:
-            bulk_confirmed.add(index)
-    for cid, user_indices in indices_por_curso.items():
-        try:
-            report = (cached_bulk_reports[cid] if cid in cached_bulk_reports else
-                      _moodle_request('gradereport_user_get_grades_table', {'courseid': cid}, timeout=35))
-            tables = report.get('tables', []) if isinstance(report, dict) else []
-            for tab in tables:
-                target = user_indices.get(str(tab.get('userid')))
-                if target is not None:
-                    nota = _nota_tabla_moodle(tab)
-                    if nota is not None:
-                        data[target]['calificacion_final'] = nota
-                        bulk_confirmed.add(target)
-        except RuntimeError:
-            pass  # Se intenta la consulta individual con escalas explícitas.
-    total_students = len(data)
-    consulta = data[:MAX_GRADE_USERS] if MAX_GRADE_USERS else data
-    if consulta:
+
+    def cargar_reporte(cid):
+        if cid in cached_bulk_reports:
+            return cached_bulk_reports[cid]
+        return _moodle_request('gradereport_user_get_grades_table', {'courseid': cid}, timeout=18)
+
+    # El reporte por curso sustituye miles de llamadas por estudiante.
+    with ThreadPoolExecutor(max_workers=MOODLE_WORKERS) as executor:
+        pending = {executor.submit(cargar_reporte, cid): cid for cid in indices_por_curso}
+        done = 0
+        for future in as_completed(pending):
+            cid = pending[future]
+            consultas_notas_realizadas += 1
+            done += 1
+            try:
+                report = future.result()
+                tables = report.get('tables', []) if isinstance(report, dict) else []
+                if not isinstance(tables, list):
+                    tables = []
+                for tab in tables:
+                    target = indices_por_curso[cid].get(str(tab.get('userid')))
+                    if target is not None:
+                        nota = _nota_tabla_moodle(tab)
+                        if nota is not None:
+                            data[target]['calificacion_final'] = nota
+            except RuntimeError as exc:
+                if len(errores) < 80:
+                    errores.append(f'Calificaciones curso {cid}: {exc}')
+            if done == 1 or done % 8 == 0:
+                publish_progress('Calificaciones')
+    publish_progress('Calificaciones completas')
+
+    # La consulta individual es opcional, no debe impedir el primer render del dashboard.
+    if MOODLE_INDIVIDUAL_GRADE_LOOKUP:
+        consulta = data[:MAX_GRADE_USERS] if MAX_GRADE_USERS else data
         with ThreadPoolExecutor(max_workers=MOODLE_WORKERS) as executor:
-            # Si el reporte masivo contiene una nota fiable, no consultar de nuevo
-            # al estudiante salvo que se pidan expresamente detalles por actividad.
-            jobs = {executor.submit(_extraer_calificacion, r['user_id'], r['course_id']): i
-                    for i, r in enumerate(consulta)
-                    if r['user_id'] is not None and (i not in bulk_confirmed or MOODLE_GRADE_DETAILS_ALL)}
-            for future in as_completed(jobs):
-                idx = jobs[future]
+            pending = {executor.submit(_extraer_calificacion, r['user_id'], r['course_id']): i
+                       for i, r in enumerate(consulta)
+                       if r['user_id'] is not None and
+                       (r['calificacion_final'] is None or MOODLE_GRADE_DETAILS_ALL)}
+            for n, future in enumerate(as_completed(pending), 1):
+                i = pending[future]
+                consultas_notas_realizadas += 1
                 try:
-                    nota, grade_items, err = future.result()
+                    nota, items, err = future.result()
                     if nota is not None:
-                        data[idx]['calificacion_final'] = nota
-                    data[idx]['items_calificados'] = grade_items
-                    if err and len(errores) < 25:
-                        errores.append(f'Nota curso {data[idx]["course_id"]}: {err}')
+                        data[i]['calificacion_final'] = nota
+                    data[i]['items_calificados'] = items
+                    if err and len(errores) < 80:
+                        errores.append(f'Nota curso {data[i]["course_id"]}: {err}')
                 except Exception as exc:
-                    if len(errores) < 25:
-                        errores.append(f'Nota: {type(exc).__name__}')
-    consultas_notas_realizadas = len(set(indices_por_curso) | set(cached_bulk_reports)) + (len(jobs) if consulta else 0)
-    actividades, recursos, foros = [], [], []
-    if courses:
-        with ThreadPoolExecutor(max_workers=MOODLE_WORKERS) as executor:
-            jobs = {executor.submit(_get_course_content, c): c for c in courses}
-            for fut in as_completed(jobs):
-                a, r, f, err = fut.result()
+                    if len(errores) < 80:
+                        errores.append(f'Nota individual: {type(exc).__name__}')
+                if n == 1 or n % 30 == 0:
+                    publish_progress('Notas individuales')
+
+    # Los contenidos son complementarios y nunca deben bloquear la publicación de notas.
+    with ThreadPoolExecutor(max_workers=MOODLE_WORKERS) as executor:
+        futures = {executor.submit(_get_course_content, c): c for c in courses}
+        done = 0
+        for future in as_completed(futures):
+            done += 1
+            try:
+                a, r, f, err = future.result()
                 actividades.extend(a)
                 recursos.extend(r)
                 foros.extend(f)
-                if err and len(errores) < 25:
-                    errores.append(f'Contenido curso {jobs[fut]["id"]}: {err}')
-    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    info = {'last_synced': now, 'courses': full_courses,
-            'activities': actividades, 'resources': recursos, 'forums': foros,
-            'total_matriculas': total_students - registros_solo_reporte,
-            'registros_solo_reporte': registros_solo_reporte,
-            'consultas_notas': consultas_notas_realizadas,
-            'calificaciones_disponibles': sum(r['calificacion_final'] is not None for r in data),
-            'sin_calificacion': sum(r['calificacion_final'] is None for r in data),
-            'matriculas_por_consultar': len(courses) - correct_enrol_calls,
-            'errores': errores, 'cursos_consultados': len(courses),
-            'cursos_matriculas_consultadas': correct_enrol_calls}
-    return pd.DataFrame(data), info
+                if err and len(errores) < 80:
+                    errores.append(f'Contenido curso {futures[future]["id"]}: {err}')
+            except Exception as exc:
+                if len(errores) < 80:
+                    errores.append(f'Contenido curso {futures[future]["id"]}: {type(exc).__name__}')
+            if done == 1 or done % 20 == 0:
+                publish_progress('Contenidos')
 
+    full_courses.sort(key=lambda c: c.get('id',0))
+    catalogo_final = snapshot(in_progress=False)
+    _logger.info('Sincronización completada: %s registros, %s notas, %s cursos; %s errores.',
+                 len(data), catalogo_final['calificaciones_disponibles'],
+                 len(courses), len(errores))
+    return pd.DataFrame(data), catalogo_final
 
 def sync_moodle_background():
     """Actualiza en disco con escrituras atómicas; nunca borra una sincronización válida por error."""
     time.sleep(2)
     while True:
+        proxima_consulta = SYNC_INTERVAL_SECONDS
         try:
             if not os.environ.get('MOODLE_TOKEN'):
                 _logger.warning('Sin MOODLE_TOKEN: no es posible sincronizar.')
+                proxima_consulta = 60
             else:
-                df, catalogo = obtener_datos_moodle_live()
+                def guardar_avance(df_avance, catalogo_avance):
+                    # El dashboard puede mostrar alumnos aun si faltan otros cursos o notas.
+                    _atomic_json_write(JSON_FILE_PATH, {
+                        'schema_version': 3,
+                        'last_synced': catalogo_avance['last_synced'],
+                        'records': json.loads(df_avance.to_json(orient='records', force_ascii=False))
+                    })
+                    _atomic_json_write(CATALOGO_PATH, catalogo_avance)
+                    global _cached_mtime
+                    with _lock_datos:
+                        _cached_mtime = -1
+
+                df, catalogo = obtener_datos_moodle_live(progress_callback=guardar_avance)
                 if df.empty and catalogo.get('cursos_consultados') and not catalogo.get('cursos_matriculas_consultadas'):
                     # Si el servicio rechaza todas las matrículas Y los informes,
                     # no reemplazar por un archivo vacío un resultado anterior válido.
@@ -567,8 +658,18 @@ def sync_moodle_background():
                 _logger.info('Sincronizado: %s matrículas, %s notas, %s cursos',
                              len(df), catalogo['calificaciones_disponibles'], catalogo['cursos_consultados'])
         except Exception as exc:
+            # Registrar una causa consultable en Configuración aunque ninguna fila se haya descargado.
             _logger.error('Sincronización Moodle falló: %s', str(exc)[:350])
-        time.sleep(SYNC_INTERVAL_SECONDS)
+            try:
+                estado = _leer_catalogo()
+                estado['sync_in_progress'] = False
+                estado['sync_error_at'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+                estado['errores'] = (estado.get('errores') or [])[-15:] + [str(exc)[:200]]
+                _atomic_json_write(CATALOGO_PATH, estado)
+            except Exception:
+                _logger.exception('No se pudo escribir el diagnóstico de sincronización')
+            proxima_consulta = 90
+        time.sleep(proxima_consulta)
 
 
 if os.environ.get('MOODLE_AUTO_SYNC', 'true').strip().lower() in ('1', 'yes', 'true'):
@@ -2732,14 +2833,20 @@ def toggle_theme(n_clicks, current_theme):
      Input('curso-dropdown', 'value'), 
      Input('grupo-dropdown', 'value'),
      Input('busqueda-input', 'value'),
-     Input('main-container', 'className')],
+     Input('main-container', 'className'),
+     Input('trigger-inicial', 'n_intervals')],
     [State('carrera-dropdown', 'options'),
      State('url', 'pathname')]
 )
-def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_class, options_carrera, pathname):
+def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_class, _intervalo, options_carrera, pathname):
     df = obtener_datos_procesados()
-    empty_ret = ({}, {}, html.Div('Sin datos sincronizados. Si Moodle no tiene token o permisos, se mostrarán los módulos sin valores.', style={'color':'var(--text-muted)'}),
-                 html.Div('Esperando sincronización de Moodle.', style={'color':'var(--text-muted)'}),
+    estado_moodle = _leer_catalogo()
+    detalle = ('Sincronizando: ' + str(estado_moodle.get('cursos_consultados',0)) + ' de ' + str(estado_moodle.get('cursos_totales','?')) + ' cursos consultados.'
+               if estado_moodle.get('sync_in_progress') else
+               ('Moodle no entregó registros. Revisa Configuración y los Logs de Render.' if estado_moodle.get('errores') else
+                'Esperando primera sincronización de Moodle.'))
+    empty_ret = ({}, {}, html.Div(detalle, style={'color':'var(--text-muted)'}),
+                 html.Div(detalle, style={'color':'var(--text-muted)'}),
                  '—', '—', '—', '—', '—', '—')
     if df.empty or not {'nombre_alumno','curso','grupo','calificacion_final'}.issubset(df.columns):
         return empty_ret
