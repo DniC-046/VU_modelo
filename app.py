@@ -14,6 +14,8 @@ import dotenv
 import threading
 import logging
 import secrets
+import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import unescape
@@ -54,6 +56,8 @@ def get_svg_icon(name, color=COLOR_VERDE_BANDERA):
         'settings': '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
         'sun': '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
         'moon': '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+        'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        'eye-off': '<path d="M3 3l18 18"/><path d="M10.5 5.1A10.6 10.6 0 0 1 12 5c6 0 10 7 10 7a19 19 0 0 1-3.1 3.8"/><path d="M6 6.2C3.5 8 2 12 2 12s4 7 10 7c1.4 0 2.7-.4 3.9-1"/>',
         'logout': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'
     }
     
@@ -75,7 +79,8 @@ def get_svg_icon(name, color=COLOR_VERDE_BANDERA):
 #inicialización de la aplicación
 app = dash.Dash(
     __name__, 
-    title="Analítica UTTEC - Institucional", 
+    title="Analítica UTTEC - Institucional",
+    update_title="⏳ Cargando · Analítica UTTEC", 
     suppress_callback_exceptions=True,
     meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
     external_stylesheets=[
@@ -212,6 +217,68 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 @media(max-width:600px){.ut-analytics-kpis{grid-template-columns:1fr 1fr;gap:10px!important}.ut-login-preview-menu{width:100px}.ut-login-preview-cards{grid-template-columns:repeat(2,1fr)}.ut-login-preview-charts{grid-template-columns:1fr}.ut-login-box{padding:28px!important}}
 @media(prefers-reduced-motion:reduce){.ut-login-spinner,.ut-login-progress-track:before,.ut-login-reveal-line:after{animation:none!important}}
 
+/* UTTEC 2026 revisión: capas, tablas, login y preferencias. */
+/* Portales de Select: mantener desplegables por encima de tarjetas y evitar parpadeo. */
+#main-container .ut-card:has(.Select.is-open),
+#main-container .ut-card:has(.Select-menu-outer),
+#main-container .ut-card:has(.custom-dropdown.is-open){position:relative!important;z-index:4000!important;overflow:visible!important;transform:none!important;box-shadow:0 12px 30px var(--shadow-color)}
+#main-container .ut-card:has(.custom-dropdown):hover{transform:none!important}
+#main-container .ut-card:has(.custom-dropdown) .ut-form-grid,
+#main-container .ut-card:has(.custom-dropdown) .ut-field{overflow:visible!important}
+#main-container .custom-dropdown{position:relative;z-index:1}
+#main-container .custom-dropdown.is-open,
+#main-container .custom-dropdown .Select.is-open{z-index:5000!important}
+#main-container .custom-dropdown .Select-menu-outer{z-index:5100!important;position:absolute!important;box-shadow:0 17px 35px rgba(0,0,0,.25)!important}
+#main-container .ut-page{overflow:visible!important}
+#main-container .ut-kpi-grid,#main-container #calif-contenido{position:relative;z-index:0}
+#main-container .custom-dropdown .VirtualizedSelectOption{color:var(--text-color)!important}
+#main-container .custom-dropdown .VirtualizedSelectFocusedOption{background:var(--hover-bg)!important}
+#main-container .custom-dropdown .Select-value-label,#main-container .custom-dropdown .Select-placeholder{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+/* Legibilidad real de las tablas Dash en modo oscuro/claro. */
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td,
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner .dash-cell,
+#main-container.dark-theme .dash-table-container .dash-cell-value,
+#main-container.dark-theme .dash-table-container .dash-cell-value *{color:#f1f7ff!important}
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td,
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td.dash-cell{background-color:#17263f!important;border-color:#324766!important}
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tbody tr:nth-child(even) td{background-color:#203450!important}
+#main-container.dark-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th{background-color:#14305a!important;color:#fff!important;border-color:#385174!important}
+#main-container.dark-theme .dash-table-container .dash-filter input,
+#main-container.dark-theme .dash-table-container .dash-filter input::placeholder{color:#d9e9fb!important;background:#17263f!important}
+#main-container .dash-table-container .dash-cell-value{font-family:Outfit,system-ui,sans-serif!important;font-size:12px!important;line-height:1.55!important}
+#main-container .dash-table-container .dash-cell-value a,
+#main-container .dash-table-container .dash-cell-value a *{color:#30e0ab!important;text-decoration:underline!important}
+#main-container .dash-table-container .previous-next-container button,
+#main-container .dash-table-container .page-number{color:var(--text-color)!important;background:var(--dropdown-bg)!important}
+#main-container.light-theme .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td,
+#main-container.light-theme .dash-table-container .dash-cell-value{color:#142640!important}
+/* El inicio de sesión siempre usa el mismo diseño, independientemente de las preferencias del panel. */
+#login-screen{--bg-color:#0b1327!important;--card-bg:#14223a!important;--dropdown-bg:#172844!important;--border-color:#2d4263!important;--text-color:#f6f9ff!important;--text-muted:#a9bed8!important;--shadow-color:rgba(0,0,0,.22)!important;background:#0b1327!important;color:#f6f9ff!important}
+#login-screen #login-box{background:#14223a!important;border:1px solid #2d4263!important}
+#login-screen #login-username,#login-screen #login-password{background:#172844!important;color:#f6f9ff!important;border-color:#2d4263!important}
+#login-screen #login-submit-btn{transition:filter .2s,transform .12s;}
+#login-screen #login-submit-btn:active{transform:scale(.987)}
+#toggle-password-btn.ut-password-eye{display:flex!important;align-items:center!important;justify-content:center!important;width:43px!important;height:40px!important;right:7px!important;border-radius:10px!important;background:#214669!important;border:1px solid #376989!important;color:#a8ffe1!important;box-shadow:0 3px 9px rgba(0,0,0,.16)!important;transition:transform .2s,background .2s,box-shadow .2s,border-color .2s!important}
+#toggle-password-btn.ut-password-eye:hover{transform:translateY(-50%) scale(1.08)!important;background:#137c73!important;border-color:#2bdbb2!important;box-shadow:0 0 0 3px rgba(32,223,166,.18)!important}
+#toggle-password-btn.ut-password-eye:active{transform:translateY(-50%) scale(.93)!important}
+#toggle-password-btn.ut-password-eye .ut-eye-symbol{font-size:22px;line-height:1}
+#toggle-password-btn.ut-password-eye:focus-visible{outline:2px solid #40e6ae;outline-offset:3px}
+#login-screen #login-username:-webkit-autofill,#login-screen #login-password:-webkit-autofill{-webkit-text-fill-color:#f6f9ff!important;box-shadow:0 0 0 100px #172844 inset!important}
+/* Barra superior mientras Dash carga rutas o procesa el acceso. */
+#main-container:has(#page-content[data-dash-is-loading="true"]):before,
+#main-container:has(#login-error[data-dash-is-loading="true"]):before{content:'';position:fixed;left:0;right:0;top:0;height:4px;z-index:20000;pointer-events:none;background:linear-gradient(90deg,#003c81,#00a86f,#4ff2bd,#003c81);background-size:220% 100%;animation:utTopLoad 1.25s linear infinite;box-shadow:0 0 13px rgba(25,216,162,.58)}
+@keyframes utTopLoad{from{background-position:150% 0}to{background-position:-70% 0}}
+/* Tema elegible en Configuración con botones y estado legible. */
+.ut-theme-choice{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0 14px}
+.ut-theme-button{background:var(--dropdown-bg);border:1px solid var(--border-color);border-radius:12px;color:var(--text-color);padding:14px 23px;font:650 13px Outfit,system-ui,sans-serif;cursor:pointer;transition:border-color .2s,background .2s,transform .2s}
+.ut-theme-button:hover{transform:translateY(-2px);border-color:#1ad49e}
+#main-container.light-theme .ut-theme-button-claro,#main-container.dark-theme .ut-theme-button-oscuro{border-color:#11c98a;background:rgba(9,183,130,.19);box-shadow:inset 0 0 0 1px #17c88c;color:var(--text-color)}
+@media(prefers-reduced-motion:reduce){.ut-theme-button{transition:none!important}#main-container:before{animation:none!important}}
+#main-container:has(#login-screen){background:#0b1327!important}
+#page-content:has(#login-screen){margin-left:0!important;padding:0!important;background:#0b1327!important;min-height:100vh!important}
+#toggle-password-btn.ut-password-eye img{margin:0!important;width:23px!important;height:23px!important;transition:transform .18s ease}
+#toggle-password-btn.ut-password-eye:hover img{transform:rotate(-10deg) scale(1.07)}
+
 '''
 app.index_string = app.index_string.replace('</head>', '<style id="uttec-estilos">' + UTTEC_CSS_INTEGRADO + '</style></head>')
 
@@ -249,6 +316,85 @@ def _user_authorized():
     if not has_request_context():
         return True  # Procesos internos de sincronización.
     return bool(flask_session.get('uttec_authorized') is True)
+
+
+
+# UTTEC_ADMIN_AND_ROLES_20261117
+# Los dos administradores iniciales deben acreditar su identidad ante Moodle.
+# Agregar usuarios mediante el panel requiere iniciar sesión normalmente en Moodle.
+UTTEC_ADMIN_BOOTSTRAP = {'gjimeneze', '2523260049'}
+UTTEC_ROLE_DB = os.path.join(DATA_DIR, 'uttec_roles.sqlite3')
+_UTTEC_ROLE_LOCK = threading.RLock()
+UTTEC_ROLE_LABELS = {'manager': 'Administrador', 'editingteacher': 'Docente', 'denied': 'Sin acceso'}
+
+
+def _nombre_cuenta(valor):
+    return str(valor or '').strip().lower()
+
+
+def _admin_predeterminado(username):
+    extras = {_nombre_cuenta(u) for u in os.environ.get('UTTEC_DASH_ADMIN_USERS', '').split(',') if u.strip()}
+    return _nombre_cuenta(username) in UTTEC_ADMIN_BOOTSTRAP | extras
+
+
+def _conexion_roles():
+    con = sqlite3.connect(UTTEC_ROLE_DB, timeout=10)
+    con.execute('''CREATE TABLE IF NOT EXISTS accesos (
+        username TEXT PRIMARY KEY,
+        role TEXT NOT NULL CHECK (role IN ('manager','editingteacher','denied')),
+        updated_by TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )''')
+    return con
+
+
+def _roles_registrados():
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            return [dict(username=u, role=r, updated_by=by, updated_at=ts)
+                    for u,r,by,ts in con.execute(
+                        'SELECT username, role, updated_by, updated_at FROM accesos ORDER BY username')]
+
+
+def _rol_excepcion(username):
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            fila = con.execute('SELECT role FROM accesos WHERE username=?', (_nombre_cuenta(username),)).fetchone()
+            return fila[0] if fila else None
+
+
+def _guardar_rol(username, role, actor):
+    if role not in UTTEC_ROLE_LABELS:
+        raise ValueError('Rol no reconocido')
+    username = _nombre_cuenta(username)
+    if not re.fullmatch(r'[a-z0-9][a-z0-9_.@-]{2,99}', username):
+        raise ValueError('Nombre de usuario inválido; utiliza la cuenta institucional Moodle')
+    if _admin_predeterminado(username):
+        raise ValueError('Esa cuenta es administradora principal y no se modifica desde este panel')
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            con.execute('''INSERT INTO accesos(username,role,updated_by,updated_at)
+                VALUES(?,?,?,?) ON CONFLICT(username) DO UPDATE SET
+                role=excluded.role, updated_by=excluded.updated_by, updated_at=excluded.updated_at''',
+                (username, role, actor, datetime.now(timezone.utc).isoformat(timespec='seconds')))
+
+
+def _eliminar_rol(username):
+    username = _nombre_cuenta(username)
+    if _admin_predeterminado(username):
+        raise ValueError('No se puede eliminar una cuenta administradora principal')
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            con.execute('DELETE FROM accesos WHERE username=?', (username,))
+
+
+def _rol_servidor():
+    # No se admiten roles provenientes de datos manipulables del navegador.
+    return flask_session.get('uttec_role') if has_request_context() and _user_authorized() else None
+
+
+def _es_admin_servidor():
+    return _rol_servidor() == 'manager'
 
 
 def _moodle_request(function, params=None, token=None, timeout=25):
@@ -906,6 +1052,7 @@ def render_sidebar():
         ("Recursos", "/recursos", "resources"),
         ("Foros", "/foros", "forums"),
         ("Mensajes", "/mensajes", "messages"),
+        ("Usuarios", "/usuarios", "users"),
         ("Configuración", "/configuracion", "settings")
     ]
     
@@ -928,12 +1075,15 @@ def render_sidebar():
             'Recursos': 'nav-recursos',
             'Foros': 'nav-foros',
             'Mensajes': 'nav-mensajes',
+            'Usuarios': 'nav-usuarios',
             'Configuración': 'nav-configuracion'
         }[name]
-        links.append(dcc.Link(
+        enlace = dcc.Link(
             html.Div(id=id_nav, className='sidebar-link', children=contenido),
             href=href, style={'textDecoration': 'none'}
-        ))
+        )
+        links.append(html.Div(enlace, id='nav-usuarios-wrapper', style={'display': 'none'})
+                     if name == 'Usuarios' else enlace)
 
     # Base64 encoded mortarboard 
     school_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{COLOR_VERDE_BANDERA}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1012,7 +1162,7 @@ def render_sidebar():
     [Output(id_nav, 'className') for id_nav in (
         'nav-inicio', 'nav-cursos', 'nav-participantes', 'nav-calificaciones',
         'nav-analitica', 'nav-actividades', 'nav-recursos', 'nav-foros',
-        'nav-mensajes', 'nav-configuracion'
+        'nav-mensajes', 'nav-usuarios', 'nav-configuracion'
     )],
     Input('url', 'pathname')
 )
@@ -1022,7 +1172,7 @@ def actualizar_menu_inicio(pathname):
     if ruta and ruta.startswith('/alumno/'):
         ruta = '/'
     opciones = ('/inicio', '/cursos', '/participantes', '/calificaciones', '/',
-                '/actividades', '/recursos', '/foros', '/mensajes', '/configuracion')
+                '/actividades', '/recursos', '/foros', '/mensajes', '/usuarios', '/configuracion')
     return tuple('sidebar-link-active' if opcion == ruta else 'sidebar-link'
                  for opcion in opciones)
 
@@ -1805,7 +1955,13 @@ def render_configuracion():
             _mod_field('Espaciado del panel', dcc.RadioItems(id='config-densidad',
                 options=[{'label': ' Cómodo', 'value': 'normal'}, {'label': ' Compacto', 'value': 'compacto'}],
                 value='normal', inline=True, className='ut-radio')),
-            html.P('El modo claro y oscuro se sigue controlando desde el menú lateral, como antes.',
+            _mod_field('Tema del panel', html.Div(className='ut-theme-choice', children=[
+                html.Button('☀ Modo claro', id='config-modo-claro', n_clicks=0,
+                            className='ut-theme-button ut-theme-button-claro', type='button'),
+                html.Button('☾ Modo oscuro', id='config-modo-oscuro', n_clicks=0,
+                            className='ut-theme-button ut-theme-button-oscuro', type='button')
+            ])),
+            html.P('La pantalla de inicio de sesión mantiene siempre su diseño oscuro original.',
                    className='ut-card-subtitle'),
             html.Div(className='ut-form-footer', children=[
                 html.Button('Guardar preferencias', id='config-guardar', n_clicks=0, className='ut-btn'),
@@ -2717,8 +2873,9 @@ def render_login_screen():
                     style={**input_style, 'paddingRight': '62px'}
                 ),
                 html.Button(
-                    '👁',
+                    get_svg_icon('eye', '#a8ffe1'),
                     id='toggle-password-btn',
+                    className='ut-password-eye',
                     type='button',
                     n_clicks=0,
                     title='Mostrar contraseña',
@@ -2742,7 +2899,7 @@ def render_login_screen():
                 html.Span('Acceder', className='ut-login-default-label'),
                 html.Span(className='ut-login-pending-label', children=[
                     html.Span(className='ut-login-spinner', **{'aria-hidden': 'true'}),
-                    'Verificando acceso...'
+                    'Datos enviados · verificando...'
                 ])
             ], id='login-submit-btn', n_clicks=0, type='button', style={
                 'width': '100%',
@@ -2756,7 +2913,7 @@ def render_login_screen():
                 'cursor': 'pointer'
             }),
             html.Div(className='ut-login-progress', role='status', **{'aria-live': 'polite'}, children=[
-                html.P('Validando credenciales y permisos en Moodle...', className='ut-login-progress-title'),
+                html.P('Solicitud recibida. Validando credenciales y permisos en Moodle...', className='ut-login-progress-title'),
                 html.Div(className='ut-login-progress-track', role='progressbar',
                          **{'aria-label': 'Verificando acceso institucional'})
             ]),
@@ -2772,12 +2929,15 @@ def render_login_screen():
 
 @app.callback(
     Output('login-password', 'type'),
+    Output('toggle-password-btn', 'children'),
     Input('toggle-password-btn', 'n_clicks'),
     prevent_initial_call=True
 )
 def mostrar_ocultar_password(n_clicks):
     """Al pulsar el ojo, muestra u oculta la contraseña escrita."""
-    return 'text' if n_clicks and n_clicks % 2 else 'password'
+    visible = bool(n_clicks and n_clicks % 2)
+    return ('text' if visible else 'password',
+            get_svg_icon('eye-off' if visible else 'eye', '#a8ffe1'))
 
 
 # Animación de respuesta inmediata al botón o a Enter, sin un archivo JS adicional.
@@ -2819,6 +2979,94 @@ def ut_animacion_acceso_autorizado(auth_data):
     return 'ut-login-reveal-hidden'
 
 
+
+def render_usuarios():
+    """Administración de excepciones de acceso al dashboard (no cambia los roles en Moodle)."""
+    if not _es_admin_servidor():
+        return render_access_denied_screen('Sin permisos de administración')
+    try:
+        entradas = _roles_registrados()
+        error = None
+    except sqlite3.Error as exc:
+        _logger.error('Error al leer roles de UTTEC: %s', type(exc).__name__)
+        entradas, error = [], 'No se pudo acceder al almacenamiento de roles. Revisa UTTEC_DATA_DIR.'
+    filas = [{'username':e['username'], 'role':UTTEC_ROLE_LABELS.get(e['role'],e['role']),
+              'updated_by':e['updated_by'], 'updated_at':e['updated_at']}
+             for e in entradas]
+    filas = ([{'username':u, 'role':'Administrador principal', 'updated_by':'Configuración inicial',
+               'updated_at':'Permanente'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] + filas)
+    tabla = dash_table.DataTable(
+        id='usuarios-tabla', data=filas,
+        columns=[{'name':'Cuenta Moodle','id':'username'}, {'name':'Rol en el dashboard','id':'role'},
+                 {'name':'Modificado por','id':'updated_by'}, {'name':'Fecha','id':'updated_at'}],
+        page_size=12, sort_action='native', filter_action='native',
+        style_table={'overflowX':'auto'}, style_header={'backgroundColor':'#153863','color':'#fff', 'padding':'13px'},
+        style_cell={'backgroundColor':'var(--card-bg)','color':'var(--text-color)', 'padding':'13px',
+                    'textAlign':'left','border':'1px solid var(--border-color)', 'fontFamily':'Outfit, sans-serif'})
+    return html.Div(className='ut-page', children=[
+        _mod_hero('ADMINISTRACIÓN UTTEC', 'Usuarios y permisos',
+                  'Asigna acceso al panel sin modificar cuentas, contraseñas ni roles dentro de Moodle.', 'users'),
+        _mod_notice('Los permisos solo surten efecto después de autenticar la cuenta con Moodle. '
+                    'Las cuentas iniciales gjimeneze y 2523260049 son administradoras de este panel.'),
+        _mod_card('Asignar rol o excepción', html.Div([
+            html.Div(className='ut-form-grid', children=[
+                _mod_field('Usuario institucional (no nombre completo)',
+                           dcc.Input(id='usuarios-nombre', className='ut-input',type='text',
+                                     placeholder='Ej. usuario o matrícula')), 
+                _mod_field('Rol del dashboard', dcc.Dropdown(id='usuarios-rol',
+                    options=[{'label':'Administrador','value':'manager'},
+                             {'label':'Docente','value':'editingteacher'},
+                             {'label':'Sin acceso','value':'denied'}],
+                    value='editingteacher',clearable=False,className='custom-dropdown'))
+            ]),
+            html.Div(className='ut-form-footer', children=[
+                html.Button('Guardar permisos',id='usuarios-guardar',n_clicks=0,className='ut-btn'),
+                html.Button('Quitar excepción',id='usuarios-quitar',n_clicks=0,className='ut-btn ut-btn-outline'),
+                html.Span(id='usuarios-feedback',className='ut-feedback',role='status',children=error or '')
+            ])
+        ]), 'Los cambios son específicos de esta analítica, no de Moodle.'),
+        _mod_card('Usuarios autorizados y excepciones',tabla,
+                  'Las cuentas principales tienen acceso permanente. Las demás se administran aquí.'),
+        _mod_notice('Los permisos se guardan en uttec_roles.sqlite3 dentro de UTTEC_DATA_DIR. '
+                    'En Render configura almacenamiento persistente para conservarlos tras reinicios o despliegues.')
+    ])
+
+
+@app.callback(Output('nav-usuarios-wrapper','style'),Input('auth-store','data'))
+def mostrar_menu_usuarios(_auth):
+    return {'display':'block'} if _es_admin_servidor() else {'display':'none'}
+
+
+@app.callback(Output('usuarios-tabla','data'),Output('usuarios-feedback','children'),
+    Input('usuarios-guardar','n_clicks'),Input('usuarios-quitar','n_clicks'),
+    State('usuarios-nombre','value'),State('usuarios-rol','value'),prevent_initial_call=True)
+def gestionar_roles_usuarios(guardar, quitar, nombre, rol):
+    if not _es_admin_servidor():
+        return dash.no_update, 'No autorizado.'
+    origin = dash.ctx.triggered_id
+    usuario = _nombre_cuenta(nombre)
+    if not usuario:
+        return dash.no_update, 'Escribe el nombre institucional del usuario.'
+    try:
+        if origin == 'usuarios-guardar':
+            _guardar_rol(usuario, rol, _nombre_cuenta(flask_session.get('uttec_username')))
+            mensaje = f'Permisos guardados para {usuario}. Aplican en el próximo inicio de sesión.'
+        elif origin == 'usuarios-quitar':
+            _eliminar_rol(usuario)
+            mensaje = f'Se retiró la excepción de {usuario}. Aplicará en el próximo inicio de sesión.'
+        else:
+            return dash.no_update, dash.no_update
+        entries = _roles_registrados()
+        filas = ([{'username':u,'role':'Administrador principal','updated_by':'Configuración inicial',
+                   'updated_at':'Permanente'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] +
+                 [{'username':e['username'],'role':UTTEC_ROLE_LABELS.get(e['role'], e['role']),
+                   'updated_by':e['updated_by'],'updated_at':e['updated_at']} for e in entries])
+        return filas, mensaje
+    except (ValueError, sqlite3.Error) as exc:
+        _logger.warning('No se cambió permiso de usuario: %s', type(exc).__name__)
+        return dash.no_update, str(exc) if isinstance(exc, ValueError) else 'Error del almacenamiento de roles.'
+
+
 def render_access_denied_screen(username):
     return html.Div(style={
         'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center', 'height': '100vh', 'backgroundColor': 'var(--bg-color)'
@@ -2849,7 +3097,7 @@ def controlar_rutas(pathname, search, theme_class, auth_data):
     if not _user_authorized() or not auth_data or not auth_data.get('logged_in'):
         return render_login_screen()
     
-    role = auth_data.get('role')
+    role = _rol_servidor()
     allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
     
     # palabras clave y lista de roles permitidos
@@ -2880,6 +3128,8 @@ def controlar_rutas(pathname, search, theme_class, auth_data):
         return render_mensajes()
     if pathname == '/configuracion':
         return render_configuracion()
+    if pathname == '/usuarios':
+        return render_usuarios() if _es_admin_servidor() else render_access_denied_screen('Sin permisos')
     if not pathname or pathname in ['/', '/login']:
         return render_panel_principal()
     elif pathname.startswith('/alumno/'):
@@ -3025,12 +3275,19 @@ def manejar_filtros(n, carrera_sel, curso_sel, grupo_sel):
     [Output('main-container', 'className'),
      Output('theme-toggle-btn', 'children'),
      Output('theme-store', 'data')],
-    [Input('theme-toggle-btn', 'n_clicks')],
+    [Input('theme-toggle-btn', 'n_clicks'),
+     Input('config-modo-claro', 'n_clicks'),
+     Input('config-modo-oscuro', 'n_clicks')],
     [State('theme-store', 'data')],
     prevent_initial_call=False
 )
-def toggle_theme(n_clicks, current_theme):
-    if n_clicks and n_clicks > 0:
+def toggle_theme(n_clicks, clicks_claro, clicks_oscuro, current_theme):
+    origen = dash.ctx.triggered_id
+    if origen == 'config-modo-claro' and clicks_claro:
+        new_theme = 'light'
+    elif origen == 'config-modo-oscuro' and clicks_oscuro:
+        new_theme = 'dark'
+    elif origen == 'theme-toggle-btn' and n_clicks:
         new_theme = 'light' if current_theme == 'dark' else 'dark'
     else:
         new_theme = current_theme if current_theme in ['dark', 'light'] else 'dark'
@@ -3207,7 +3464,7 @@ def redirigir_desde_busqueda(busqueda_sel, carrera_sel, curso_sel):
 )
 def update_layout_auth(auth_data):
     if _user_authorized() and auth_data and auth_data.get('logged_in'):
-        role = auth_data.get('role')
+        role = _rol_servidor()
         allowed_roles = ['manager', 'editingteacher', 'teacher', 'coursecreator']
         
         has_access = False
@@ -3237,20 +3494,28 @@ def update_layout_auth(auth_data):
 def handle_login(n_clicks, enter_usuario, enter_password, username, password, auth_data):
     # Los dos n_submit permiten Enter indistintamente en usuario/correo y contraseña.
     # Se conserva el acceso por botón y la comprobación real de credenciales Moodle.
-    if not (n_clicks or enter_usuario or enter_password) or not str(username or '').strip() or not str(password or '').strip():
+    if dash.ctx.triggered_id not in ('login-submit-btn', 'login-username', 'login-password'):
+        return dash.no_update, dash.no_update, dash.no_update
+    if not str(username or '').strip() or not str(password or '').strip():
         return dash.no_update, 'Escribe usuario y contraseña.', dash.no_update
     username = str(username).strip().lower()
     flask_session.pop('uttec_authorized', None)
     flask_session.pop('uttec_user_id', None)
+    flask_session.pop('uttec_role', None)
+    flask_session.pop('uttec_username', None)
     # Mantener el acceso local de prueba de la versión que entregó el usuario.
     # Solo el equipo local puede usarlo; nunca se habilita en Render ni desde la LAN.
     localhost_real = (has_request_context()
                       and request.remote_addr in ('127.0.0.1', '::1')
                       and request.host.split(':')[0].lower() in ('127.0.0.1', 'localhost', '[::1]'))
-    if localhost_real and username in ('profesor', 'manager', 'maestro', 'docente'):
+    if (localhost_real and os.environ.get('UTTEC_LOCAL_DEMO', 'false').lower() == 'true'
+            and username == os.environ.get('UTTEC_DEMO_USER', '')
+            and bool(os.environ.get('UTTEC_DEMO_PASSWORD'))
+            and secrets.compare_digest(str(password), os.environ.get('UTTEC_DEMO_PASSWORD',''))):
         flask_session['uttec_authorized'] = True
         flask_session['uttec_role'] = 'editingteacher'
         flask_session['uttec_user_id'] = 'local-demo'
+        flask_session['uttec_username'] = username
         flask_session.permanent = False
         return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, '', '/inicio'
     if not os.environ.get('MOODLE_TOKEN'):
@@ -3266,31 +3531,51 @@ def handle_login(n_clicks, enter_usuario, enter_password, username, password, au
         user_token = data.get('token') if isinstance(data, dict) else None
         if not user_token:
             return dash.no_update, 'Credenciales incorrectas o servicio de acceso no habilitado en Moodle.', dash.no_update
-        profile = _moodle_request('core_webservice_get_site_info', token=user_token)
+        profile = _moodle_request('core_webservice_get_site_info', token=user_token, timeout=10)
         user_id = profile.get('userid')
         if not user_id:
             return dash.no_update, 'Moodle no pudo identificar el usuario.', dash.no_update
+        # El nombre de usuario lo confirma Moodle, no el formulario del navegador.
+        verified_username = _nombre_cuenta(profile.get('username'))
+        if not verified_username:
+            return dash.no_update, 'Moodle no entregó el nombre de usuario autenticado.', dash.no_update
         is_admin = bool(profile.get('userissiteadmin'))
-        # Whitelist administrada solo desde variables de entorno en Render.
         whitelisted = {x.strip() for x in os.environ.get('UTTEC_ALLOWED_USER_IDS', '').split(',') if x.strip()}
-        role_assigned = 'manager' if is_admin or str(user_id) in whitelisted else None
+        # Cuentas principales: rápidas porque no requieren consultar decenas de cursos.
+        if is_admin or _admin_predeterminado(verified_username) or str(user_id) in whitelisted:
+            role_assigned = 'manager'
+        else:
+            try:
+                role_assigned = _rol_excepcion(verified_username)
+            except sqlite3.Error as exc:
+                _logger.error('No fue posible consultar roles: %s', type(exc).__name__)
+                role_assigned = None
+        if role_assigned == 'denied':
+            return dash.no_update, 'El administrador restringió el acceso a esta cuenta.', dash.no_update
         if not role_assigned:
-            cat = _leer_catalogo()  # Sin sesión aún devuelve {}; consultar matrículas directamente.
-            cursos = _moodle_request('core_course_get_courses')
-            if not isinstance(cursos, list):
-                raise RuntimeError('No se pudo consultar cursos para autorización')
-            max_roles = max(1, int(os.environ.get('MOODLE_ROLE_CHECK_COURSES', '80')))
-            for course in cursos[:max_roles]:
-                if not isinstance(course, dict) or int(course.get('id') or 1) == 1:
-                    continue
+            # Buscar solo cursos del usuario: más rápido y más exacto que el primer bloque de 80 cursos.
+            ids = []
+            try:
+                vinculados = _moodle_request('core_enrol_get_users_courses', {'userid': user_id}, timeout=8)
+                if isinstance(vinculados, list):
+                    ids = [c.get('id') for c in vinculados if isinstance(c, dict) and c.get('id')]
+            except RuntimeError:
+                pass
+            if not ids:
+                # Compatibilidad con servidores Moodle sin core_enrol_get_users_courses habilitado.
+                cursos = _moodle_request('core_course_get_courses', timeout=8)
+                ids = [c.get('id') for c in (cursos if isinstance(cursos, list) else [])
+                       if isinstance(c, dict) and int(c.get('id') or 1) != 1]
+            max_roles = max(1, min(25, int(os.environ.get('MOODLE_ROLE_CHECK_COURSES', '8'))))
+            for course_id in ids[:max_roles]:
                 try:
-                    enrolled = _moodle_request('core_enrol_get_enrolled_users', {'courseid': course['id']})
+                    enrolled = _moodle_request('core_enrol_get_enrolled_users', {'courseid': course_id}, timeout=6)
                     for entry in enrolled if isinstance(enrolled, list) else []:
                         if str(entry.get('id')) == str(user_id):
                             roles = {str(r.get('shortname','')).lower() for r in (entry.get('roles') or [])}
                             allowed = roles.intersection({'editingteacher','teacher','manager','coursecreator'})
                             if allowed:
-                                role_assigned = next(iter(allowed))
+                                role_assigned = sorted(allowed)[0]
                                 break
                     if role_assigned:
                         break
@@ -3301,6 +3586,7 @@ def handle_login(n_clicks, enter_usuario, enter_password, username, password, au
         flask_session['uttec_authorized'] = True
         flask_session['uttec_user_id'] = str(user_id)
         flask_session['uttec_role'] = role_assigned
+        flask_session['uttec_username'] = verified_username
         flask_session.permanent = False
         return {'logged_in': True, 'role': role_assigned,
                 'username': str(profile.get('fullname') or username)}, '', '/inicio'
@@ -3378,7 +3664,7 @@ if __name__ == '__main__':
             puerto = candidato
             break
         print(f'Dashboard local: http://127.0.0.1:{puerto}/')
-        print('Acceso de prueba local: usuario profesor; contraseña de prueba no vacía.')
+        print('Acceso local opcional: configura UTTEC_LOCAL_DEMO=true, UTTEC_DEMO_USER y UTTEC_DEMO_PASSWORD.')
         if not os.environ.get('MOODLE_TOKEN'):
             print('MOODLE_TOKEN no configurado: se mostrará la interfaz, pero sin datos reales.')
     app.run(debug=False, host=host, port=puerto)
