@@ -5,6 +5,7 @@ import dash
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output, State
 import plotly.express as px
+import plotly.graph_objects as go
 from flask_caching import Cache
 import urllib.parse
 from openai import OpenAI
@@ -142,6 +143,74 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 @media(max-width:860px){#sidebar-container{position:relative!important;width:100%!important;min-height:unset!important;height:auto!important;bottom:auto!important;padding:15px!important;overflow:visible!important}#sidebar-container>div{position:relative!important;width:100%!important;bottom:auto!important;top:auto!important;left:auto!important;min-height:unset!important;height:auto!important;padding:12px!important}#sidebar-container>div>div:nth-child(3){flex-direction:row!important;overflow:auto;gap:7px}#sidebar-container>div>div:nth-child(3)>a{flex-shrink:0}#sidebar-container>div>div:last-child{margin-top:7px!important;flex-direction:row!important}#page-content{margin-left:0!important;padding:18px!important}.ut-hero{padding:25px 21px}.ut-hero-icon{display:none}}
 @media(max-width:540px){.ut-kpi-grid{grid-template-columns:1fr 1fr;gap:10px}.ut-kpi{padding:13px}.ut-kpi-value{font-size:24px}.ut-card{padding:17px}.ut-form-grid{grid-template-columns:1fr}.ut-list-row{flex-wrap:wrap}.ut-hero-title{font-size:27px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+
+/* UTTEC 2026: menú lateral homologado sin alterar las cabeceras existentes. */
+#sidebar-container, #sidebar-container>div {background:linear-gradient(165deg,#001550 0%,#062a61 70%,#006452 160%)!important}
+#sidebar-container .sidebar-link{border:1px solid transparent;color:#e6f3ff}
+#sidebar-container .sidebar-link:hover{background:rgba(37,227,161,.13)!important;border-color:rgba(38,226,164,.23)}
+#sidebar-container .sidebar-link-active{background:linear-gradient(95deg,#008c59,#08ab71)!important;border:1px solid rgba(112,250,193,.5);box-shadow:0 7px 21px rgba(0,131,95,.23),inset 3px 0 #5ef6b3;color:#fff}
+#sidebar-container .sidebar-link-active img{filter:brightness(1.2)}
+#sidebar-container .sidebar-link-active span{color:#fff!important}
+#sidebar-container hr{border-color:rgba(57,218,158,.3)!important}
+.ut-hero{background:linear-gradient(112deg,#001550 0%,#063966 60%,#067650 132%)}
+#main-container .ut-btn,#main-container .ut-kpi{--ut-accent:#009d68}
+/* Rejillas adaptables, incluso si faltan datos en los gráficos. */
+.ut-analytics-filter-row{display:flex;gap:20px;flex-wrap:wrap}
+.ut-analytics-filter-row>div{flex:1 1 215px!important;min-width:0}
+.ut-analytics-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px!important}
+.ut-analytics-charts{display:grid!important;grid-template-columns:minmax(290px,2fr) minmax(350px,3fr);gap:20px!important;align-items:stretch}
+.ut-analytics-charts>div{width:auto!important;min-width:0;overflow:hidden}
+.ut-analytics-charts .dash-graph{max-width:100%}
+.ut-no-grades{padding:24px;text-align:center;color:var(--text-muted)}
+/* Login: el fondo es una maqueta sin datos personales; datos reales solo tras autorización. */
+.ut-login-screen{isolation:isolate}
+.ut-login-box{position:relative;z-index:2;transition:box-shadow .3s,border-color .3s,transform .3s}
+.ut-login-preview{position:absolute;inset:0;opacity:0;z-index:0;pointer-events:none;filter:blur(11px);transform:scale(1.045);transition:opacity .35s ease;overflow:hidden}
+.ut-login-screen:has(.ut-login-submitting) .ut-login-preview{opacity:.48}
+.ut-login-preview-layout{height:100%;display:flex;min-width:660px;opacity:.7}
+.ut-login-preview-menu{width:238px;background:linear-gradient(155deg,#001550,#006452);padding:26px 15px}
+.ut-login-preview-logo{height:22px;border-radius:7px;background:#2bdfaa;width:145px;margin:0 0 45px}
+.ut-login-preview-menu-line{height:14px;border-radius:6px;background:#adcaed;margin:22px 0;opacity:.6;width:135px}
+.ut-login-preview-content{flex:1;padding:55px 6vw;background:#eef5fb}
+.ut-login-preview-title{height:35px;width:40%;border-radius:8px;background:#0b3970;margin-bottom:34px}
+.ut-login-preview-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.ut-login-preview-cards>div{height:130px;border-radius:14px;background:#fff;box-shadow:0 12px 25px rgba(8,23,51,.1);border-top:5px solid #00a772}
+.ut-login-preview-charts{display:grid;grid-template-columns:1fr 1.3fr;gap:18px;margin-top:25px}
+.ut-login-preview-charts>div{height:260px;border-radius:15px;background:#fff;box-shadow:0 12px 25px rgba(8,23,51,.1)}
+.ut-login-submitting.ut-login-box{border-color:#27dba0!important;box-shadow:0 14px 60px rgba(12,209,143,.21)!important}
+#login-submit-btn{position:relative;transition:filter .2s}
+.ut-login-submitting #login-submit-btn{pointer-events:none;cursor:progress;filter:brightness(.86)}
+.ut-login-pending-label{display:none}
+.ut-login-submitting .ut-login-pending-label{display:inline-flex;align-items:center;gap:11px}
+.ut-login-submitting .ut-login-default-label{display:none}
+.ut-login-spinner{width:17px;height:17px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:utLoginSpin .85s linear infinite}
+.ut-login-progress{height:0;opacity:0;overflow:hidden;transition:height .2s,opacity .2s;margin-top:0}
+.ut-login-submitting .ut-login-progress{height:48px;opacity:1;margin-top:12px}
+.ut-login-progress-title{font-size:12px;font-weight:650;color:var(--text-muted);text-align:left;margin:0 0 7px}
+.ut-login-progress-track{height:7px;overflow:hidden;border-radius:12px;background:rgba(130,164,194,.21)}
+.ut-login-progress-track:before{content:'';display:block;width:45%;height:100%;border-radius:12px;background:linear-gradient(90deg,#008f64,#36eeb6);animation:utLoginIndeterminate 1.5s ease-in-out infinite}
+.ut-login-submitting #login-error{visibility:hidden}
+#login-username:focus,#login-password:focus{outline:2px solid rgba(36,220,158,.45);outline-offset:2px}
+#login-username:-webkit-autofill,#login-password:-webkit-autofill{-webkit-text-fill-color:#10253d!important;box-shadow:0 0 0 100px #eef5ff inset!important}
+/* Transición posterior a verificación real: el panel autorizado aparece desenfocado. */
+.ut-login-reveal-hidden{display:none}
+.ut-login-reveal-visible{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;pointer-events:none;background:rgba(3,17,43,.66);backdrop-filter:blur(15px);animation:utRevealCurtain 1.65s ease forwards}
+.ut-login-reveal-card{max-width:380px;width:calc(100% - 35px);text-align:center;border-radius:18px;border:1px solid rgba(72,226,172,.45);padding:27px;background:rgba(4,24,61,.91);box-shadow:0 20px 70px rgba(0,0,0,.25);color:#fff}
+.ut-login-reveal-title{font-size:19px;font-weight:800;margin:0 0 9px;color:#fff}
+.ut-login-reveal-description{color:#cae2fa;font-size:13px;margin:0 0 19px}
+.ut-login-reveal-line{height:7px;border-radius:7px;background:rgba(155,205,245,.15);overflow:hidden}
+.ut-login-reveal-line:after{content:'';display:block;height:100%;width:100%;transform:translateX(-100%);background:linear-gradient(90deg,#00895c,#4cf4b2);animation:utRevealLoading 1.1s ease-out forwards}
+#main-container:has(.ut-login-reveal-visible) #page-content,#main-container:has(.ut-login-reveal-visible) #sidebar-container{animation:utRevealPanel 1.4s ease-out both}
+@keyframes utLoginSpin{to{transform:rotate(360deg)}}
+@keyframes utLoginIndeterminate{0%{transform:translateX(-115%)}50%{transform:translateX(125%)}100%{transform:translateX(260%)}}
+@keyframes utRevealCurtain{0%,48%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
+@keyframes utRevealPanel{0%{filter:blur(14px);opacity:.45}100%{filter:blur(0);opacity:1}}
+@keyframes utRevealLoading{to{transform:translateX(0)}}
+@media(max-width:1190px){.ut-analytics-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ut-analytics-charts{grid-template-columns:1fr}}
+@media(max-width:600px){.ut-analytics-kpis{grid-template-columns:1fr 1fr;gap:10px!important}.ut-login-preview-menu{width:100px}.ut-login-preview-cards{grid-template-columns:repeat(2,1fr)}.ut-login-preview-charts{grid-template-columns:1fr}.ut-login-box{padding:28px!important}}
+@media(prefers-reduced-motion:reduce){.ut-login-spinner,.ut-login-progress-track:before,.ut-login-reveal-line:after{animation:none!important}}
 
 '''
 app.index_string = app.index_string.replace('</head>', '<style id="uttec-estilos">' + UTTEC_CSS_INTEGRADO + '</style></head>')
@@ -472,7 +541,7 @@ def obtener_datos_moodle_live(progress_callback=None):
         full = {**course,
                 'matriculados': len(students) if enrol_ok else None,
                 'estado_matriculas': 'Consultado' if enrol_ok else 'Sin permiso / error',
-                'grupos': sorted(set(str(g.get('name','')).strip() for u in students
+                'grupos': sorted(set(clean_moodle_html(g.get('name','')).strip().upper() for u in students
                                      for g in (u.get('groups') or [])
                                      if isinstance(g, dict) and g.get('name')))}
         for u in students:
@@ -810,7 +879,8 @@ SIDEBAR_STYLE = {
     'bottom': '0',
     'width': '260px',
     'padding': '30px 20px',
-    'backgroundColor': '#000B52',
+    'backgroundColor': '#001550',
+    'background': 'linear-gradient(165deg, #001550 0%, #062a61 70%, #006452 160%)',
     'borderRight': '1px solid rgba(0, 168, 89, 0.2)',
     'display': 'flex',
     'flexDirection': 'column',
@@ -1391,6 +1461,29 @@ def _opciones(valores):
     return [{'label': str(x), 'value': str(x)} for x in valores]
 
 
+def _figura_sin_notas(titulo='Sin calificaciones disponibles',
+                      detalle='Los datos académicos aparecerán cuando Moodle publique notas verificables.',
+                      tema='light'):
+    """Gráfico estable sin barras/pastel engañosos, manteniendo dimensiones."""
+    clara = (tema == 'light')
+    fig = go.Figure()
+    fig.update_layout(
+        template='plotly_white' if clara else 'plotly_dark',
+        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+        height=350, margin=dict(l=20, r=20, t=25, b=20),
+        showlegend=False, font=dict(family='Outfit, sans-serif',
+                                     color='#243651' if clara else '#d2e5fb'),
+        xaxis=dict(visible=False, range=[0, 1]),
+        yaxis=dict(visible=False, range=[0, 1]),
+        annotations=[
+            dict(x=.5, y=.58, xref='paper', yref='paper', showarrow=False,
+                 text=f'<b>{titulo}</b>', font=dict(size=16)),
+            dict(x=.5, y=.43, xref='paper', yref='paper', showarrow=False,
+                 text=detalle, font=dict(size=12), align='center')
+        ])
+    return fig
+
+
 # 1) CALIFICACIONES: datos reales del archivo local sincronizado desde Moodle.
 def render_calificaciones():
     df = obtener_datos_procesados()
@@ -1440,16 +1533,20 @@ def _estadisticas_calificaciones(carrera, curso, grupo, buscar):
     riesgo = int((datos_con_nota['calificacion_final'] < 6.0).sum())
     resumen_curso = (datos_con_nota.groupby('curso', as_index=False)['calificacion_final']
                        .mean().sort_values('calificacion_final', ascending=False).head(12))
-    grafico = px.bar(resumen_curso, y='curso', x='calificacion_final', orientation='h',
-                     color='calificacion_final', color_continuous_scale=['#e85e75', '#33bdf1', '#18d99a'],
-                     labels={'curso': 'Curso', 'calificacion_final': 'Calificación media'},
-                     template='plotly_dark')
-    grafico.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          margin=dict(l=12, r=12, t=20, b=35), showlegend=False,
-                          coloraxis_showscale=False, font=dict(family='Outfit, sans-serif', color='#cbd9ec'),
-                          xaxis=dict(range=[0, 10], gridcolor='rgba(148,163,184,.18)'),
-                          yaxis=dict(categoryorder='total ascending', automargin=True))
-    grafico.update_traces(marker_line_width=0, hovertemplate='%{y}<br>Promedio: %{x:.2f}<extra></extra>')
+    if datos_con_nota.empty:
+        grafico = _figura_sin_notas('No hay notas publicadas para este filtro',
+                                    'El alumnado existe, pero Moodle no entregó calificaciones verificables.')
+    else:
+        grafico = px.bar(resumen_curso, y='curso', x='calificacion_final', orientation='h',
+                         color='calificacion_final', color_continuous_scale=['#e85e75', '#33bdf1', '#18d99a'],
+                         labels={'curso': 'Curso', 'calificacion_final': 'Calificación media'},
+                         template='plotly_dark')
+        grafico.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                              margin=dict(l=12, r=12, t=20, b=35), showlegend=False,
+                              coloraxis_showscale=False, font=dict(family='Outfit, sans-serif', color='#cbd9ec'),
+                              xaxis=dict(range=[0, 10], gridcolor='rgba(148,163,184,.18)'),
+                              yaxis=dict(categoryorder='total ascending', automargin=True))
+        grafico.update_traces(marker_line_width=0, hovertemplate='%{y}<br>Promedio: %{x:.2f}<extra></extra>')
     rows = []
     for fila in df[['nombre_alumno', 'carrera', 'curso', 'grupo', 'calificacion_final']].to_dict('records'):
         raw = fila.get('calificacion_final')
@@ -1961,6 +2058,61 @@ def actualizar_tabla_cursos(division, grupo, buscar):
     return rows
 
 
+@app.callback(
+    Output('cursos-filtro-grupo', 'options'),
+    Output('cursos-filtro-grupo', 'value'),
+    Input('cursos-filtro-division', 'value'),
+    State('cursos-filtro-grupo', 'value')
+)
+def ut_actualizar_grupos_cursos(division, seleccionado):
+    """Solo grupos que pertenecen a los cursos de la división elegida."""
+    courses = _leer_catalogo().get('courses', []) or []
+    if division:
+        courses = [c for c in courses if c.get('carrera') == division]
+    grupos = sorted({str(g).strip().upper() for c in courses
+                     for g in (c.get('grupos') or []) if str(g).strip()})
+    grupos_disponibles = set(grupos)
+    nuevo_valor = seleccionado if seleccionado in grupos_disponibles else None
+    return _opciones(grupos), nuevo_valor
+
+
+@app.callback(
+    Output('calif-filtro-curso', 'options'),
+    Output('calif-filtro-curso', 'value'),
+    Input('calif-filtro-carrera', 'value'),
+    State('calif-filtro-curso', 'value')
+)
+def ut_actualizar_asignaturas_calificaciones(carrera, curso_actual):
+    """No mezclar asignaturas de divisiones ajenas en Calificaciones."""
+    df = obtener_datos_procesados()
+    if df.empty or 'curso' not in df.columns:
+        return [], None
+    if carrera and 'carrera' in df.columns:
+        df = df[df['carrera'].astype(str) == str(carrera)]
+    cursos = sorted(set(df['curso'].dropna().astype(str)))
+    return _opciones(cursos), curso_actual if curso_actual in cursos else None
+
+
+@app.callback(
+    Output('calif-filtro-grupo', 'options'),
+    Output('calif-filtro-grupo', 'value'),
+    Input('calif-filtro-carrera', 'value'),
+    Input('calif-filtro-curso', 'value'),
+    State('calif-filtro-grupo', 'value')
+)
+def ut_actualizar_grupos_calificaciones(carrera, curso, grupo_actual):
+    """Los grupos corresponden a la combinación división + asignatura."""
+    df = obtener_datos_procesados()
+    if df.empty or 'grupo' not in df.columns:
+        return [], None
+    if carrera and 'carrera' in df.columns:
+        df = df[df['carrera'].astype(str) == str(carrera)]
+    if curso and 'curso' in df.columns:
+        df = df[df['curso'].astype(str) == str(curso)]
+    grupos = sorted(set(df['grupo'].dropna().astype(str)))
+    return _opciones(grupos), grupo_actual if grupo_actual in grupos else None
+
+
 # Callbacks de los nuevos módulos: ninguna acción publica en Moodle.
 @app.callback(
     Output('calif-contenido', 'children'),
@@ -2179,7 +2331,16 @@ app.layout = html.Div(id='main-container', className='dark-theme', children=[
     dcc.Store(id='ui-preferencias-store', data={'animaciones': True, 'densidad': 'normal'}, storage_type='session'),
     dcc.Interval(id='trigger-inicial', interval=30000, n_intervals=0, disabled=False), 
     html.Div(id='sidebar-container', style={'display': 'none'}, children=[render_sidebar()]),
-    html.Div(id='page-content', style={'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'})
+    html.Div(id='page-content', style={'padding': '40px', 'backgroundColor': 'var(--bg-color)', 'minHeight': '100vh'}),
+    # Transición al panel auténtico: visible únicamente después de validar Moodle.
+    html.Div(id='login-reveal-overlay', className='ut-login-reveal-hidden',
+             role='status', **{'aria-live': 'polite'}, children=[
+        html.Div(className='ut-login-reveal-card', children=[
+            html.H3('Acceso autorizado', className='ut-login-reveal-title'),
+            html.P('Preparando la interfaz analítica UTTEC...', className='ut-login-reveal-description'),
+            html.Div(className='ut-login-reveal-line')
+        ])
+    ])
 ])
 
 def render_panel_principal():
@@ -2194,7 +2355,7 @@ def render_panel_principal():
         
 
         #Selectores
-        html.Div(style={
+        html.Div(className='ut-analytics-filter-row', style={
             'display': 'flex',
             'gap': '20px',
             'backgroundColor': 'var(--card-bg)',
@@ -2224,7 +2385,7 @@ def render_panel_principal():
         html.Div(id='mensaje-estado-container', style={'textAlign': 'center', 'marginBottom': '20px'}),
 
         # Tarjetas de métricas (KPIs)
-        html.Div(style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
+        html.Div(className='ut-analytics-kpis', style={'display': 'flex', 'gap': '20px', 'marginBottom': '30px'}, children=[
             html.Div(className='metric-card', style={'flex': '1', 'backgroundColor': 'var(--card-bg)', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)', 'position': 'relative', 'overflow': 'hidden'}, children=[
                 html.P("Estudiantes con registro", style={'margin': '0', 'color': 'var(--text-muted)', 'fontSize': '14px', 'fontWeight': '500'}),
                 html.H3(id='metric-total', children="0", style={'margin': '8px 0 0 0', 'fontSize': '28px', 'fontWeight': '700', 'color': 'var(--text-color)'}),
@@ -2248,7 +2409,7 @@ def render_panel_principal():
         ]),
 
         # graficos
-        html.Div(style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
+        html.Div(className='ut-analytics-charts', style={'display': 'flex', 'gap': '25px', 'marginBottom': '30px'}, children=[
             html.Div(style={'width': '40%', 'backgroundColor': 'var(--card-bg)', 'padding': '25px', 'borderRadius': '12px', 'border': '1px solid var(--border-color)'}, children=[
                 dcc.Graph(id='grafico-pastel-general', config={'displayModeBar': False, 'responsive': True})
             ]),
@@ -2485,16 +2646,32 @@ def render_login_screen():
         'marginBottom': '8px'
     }
 
-    return html.Div(style={
+    return html.Div(id='login-screen', className='ut-login-screen', style={
         'display': 'flex',
         'justifyContent': 'center',
         'alignItems': 'center',
         'minHeight': '100vh',
         'padding': '24px',
         'boxSizing': 'border-box',
+        'position': 'relative',
+        'overflow': 'hidden',
         'backgroundColor': 'var(--bg-color)'
     }, children=[
-        html.Div(id='login-box', style={
+        # Maqueta meramente visual: jamás se descargan datos antes de confirmar permisos.
+        html.Div(className='ut-login-preview', **{'aria-hidden': 'true'}, children=[
+            html.Div(className='ut-login-preview-layout', children=[
+                html.Div(className='ut-login-preview-menu', children=[
+                    html.Div(className='ut-login-preview-logo'),
+                    *[html.Div(className='ut-login-preview-menu-line') for _ in range(8)]
+                ]),
+                html.Div(className='ut-login-preview-content', children=[
+                    html.Div(className='ut-login-preview-title'),
+                    html.Div(className='ut-login-preview-cards', children=[html.Div() for _ in range(4)]),
+                    html.Div(className='ut-login-preview-charts', children=[html.Div(), html.Div()])
+                ])
+            ])
+        ]),
+        html.Div(id='login-box', className='ut-login-box', style={
             'backgroundColor': 'var(--card-bg)',
             'padding': '48px',
             'borderRadius': '18px',
@@ -2520,8 +2697,10 @@ def render_login_screen():
             dcc.Input(
                 id='login-username',
                 type='text',
-                placeholder='Ingrese su usuario',
+                placeholder='Correo o usuario institucional',
                 autoComplete='username',
+                autoFocus=True,
+                debounce=False,
                 style={**input_style, 'marginBottom': '22px'}
             ),
             html.Label('Contraseña', htmlFor='login-password', style=label_style),
@@ -2534,6 +2713,7 @@ def render_login_screen():
                     type='password',
                     placeholder='Ingrese su contraseña',
                     autoComplete='current-password',
+                    debounce=False,
                     style={**input_style, 'paddingRight': '62px'}
                 ),
                 html.Button(
@@ -2558,7 +2738,13 @@ def render_login_screen():
                     }
                 )
             ]),
-            html.Button('Acceder', id='login-submit-btn', n_clicks=0, type='button', style={
+            html.Button([
+                html.Span('Acceder', className='ut-login-default-label'),
+                html.Span(className='ut-login-pending-label', children=[
+                    html.Span(className='ut-login-spinner', **{'aria-hidden': 'true'}),
+                    'Verificando acceso...'
+                ])
+            ], id='login-submit-btn', n_clicks=0, type='button', style={
                 'width': '100%',
                 'padding': '16px',
                 'backgroundColor': COLOR_VERDE_BANDERA,
@@ -2569,6 +2755,11 @@ def render_login_screen():
                 'fontWeight': '700',
                 'cursor': 'pointer'
             }),
+            html.Div(className='ut-login-progress', role='status', **{'aria-live': 'polite'}, children=[
+                html.P('Validando credenciales y permisos en Moodle...', className='ut-login-progress-title'),
+                html.Div(className='ut-login-progress-track', role='progressbar',
+                         **{'aria-label': 'Verificando acceso institucional'})
+            ]),
             html.Div(id='login-error', style={
                 'color': '#FF4D4D',
                 'marginTop': '20px',
@@ -2587,6 +2778,45 @@ def render_login_screen():
 def mostrar_ocultar_password(n_clicks):
     """Al pulsar el ojo, muestra u oculta la contraseña escrita."""
     return 'text' if n_clicks and n_clicks % 2 else 'password'
+
+
+# Animación de respuesta inmediata al botón o a Enter, sin un archivo JS adicional.
+# Se desactiva cuando el servidor responde con una advertencia; en caso de éxito
+# la pantalla de acceso es sustituida por el panel ya autorizado.
+app.clientside_callback(
+    """
+    function(clicks, enterUsuario, enterClave, error, usuario, clave) {
+        const ctx = dash_clientside.callback_context;
+        const origin = ctx && ctx.triggered_id;
+        if (!origin || origin === 'login-error') {
+            return '';
+        }
+        if (!usuario || !String(usuario).trim() || !clave || !String(clave).trim()) {
+            return '';
+        }
+        return 'ut-login-box ut-login-submitting';
+    }
+    """,
+    Output('login-box', 'className'),
+    Input('login-submit-btn', 'n_clicks'),
+    Input('login-username', 'n_submit'),
+    Input('login-password', 'n_submit'),
+    Input('login-error', 'children'),
+    State('login-username', 'value'),
+    State('login-password', 'value'),
+    prevent_initial_call=True
+)
+
+
+@app.callback(
+    Output('login-reveal-overlay', 'className'),
+    Input('auth-store', 'data')
+)
+def ut_animacion_acceso_autorizado(auth_data):
+    """Muestra el panel real desenfocado solo si Moodle ya autorizó la sesión."""
+    if auth_data and auth_data.get('logged_in') and _user_authorized():
+        return 'ut-login-reveal-visible'
+    return 'ut-login-reveal-hidden'
 
 
 def render_access_denied_screen(username):
@@ -2845,7 +3075,10 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
                if estado_moodle.get('sync_in_progress') else
                ('Moodle no entregó registros. Revisa Configuración y los Logs de Render.' if estado_moodle.get('errores') else
                 'Esperando primera sincronización de Moodle.'))
-    empty_ret = ({}, {}, html.Div(detalle, style={'color':'var(--text-muted)'}),
+    tema_vacio = 'light' if theme_class == 'light-theme' else 'dark'
+    empty_ret = (_figura_sin_notas('Sin datos disponibles', detalle, tema_vacio),
+                 _figura_sin_notas('Sin calificaciones publicadas', detalle, tema_vacio),
+                 html.Div(detalle, style={'color':'var(--text-muted)'}),
                  html.Div(detalle, style={'color':'var(--text-muted)'}),
                  '—', '—', '—', '—', '—', '—')
     if df.empty or not {'nombre_alumno','curso','grupo','calificacion_final'}.issubset(df.columns):
@@ -2875,20 +3108,29 @@ def actualizar_dashboard(carrera_sel, curso_sel, grupo_sel, busqueda_sel, theme_
     light = theme_class == 'light-theme'
     template = 'plotly_white' if light else 'plotly_dark'
     fontcolor = '#10213c' if light else '#f2f6ff'
-    fig_pie = px.pie(statuses, names='Estado', values='Registros',
-                    color='Estado', color_discrete_map={'Aprobado (≥6)':'#008000',
-                    'Por debajo de 6':'#ff4d4d','Sin calificar':'#94a3b8'},
-                    title='Distribución de resultados académicos', template=template)
-    fig_pie.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          font_color=fontcolor, margin=dict(l=10,r=10,t=55,b=20))
-    # Evitar un gráfico ilegible con miles de estudiantes.
-    graficables = con_nota.nsmallest(60, 'calificacion_final')
-    fig_bar = px.bar(graficables, x='nombre_alumno', y='calificacion_final',
-                     title='Calificaciones (hasta 60 registros con menor nota)',
-                     color_discrete_sequence=[COLOR_VERDE_BANDERA], template=template)
-    fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          font_color=fontcolor, yaxis=dict(range=[0,10]),
-                          margin=dict(l=12,r=12,t=55,b=65), clickmode='event+select')
+    if not denominator:
+        # Dos tarjetas alineadas y explicativas; se conservan los registros de matrícula.
+        fig_pie = _figura_sin_notas('Distribución pendiente',
+            f'{sin_nota} estudiantes sin nota final informada en Moodle.',
+            'light' if light else 'dark')
+        fig_bar = _figura_sin_notas('Sin calificaciones para graficar',
+            'No se inventan notas: confirma los permisos o la publicación en Moodle.',
+            'light' if light else 'dark')
+    else:
+        fig_pie = px.pie(statuses, names='Estado', values='Registros',
+                        color='Estado', color_discrete_map={'Aprobado (≥6)':'#008000',
+                        'Por debajo de 6':'#ff4d4d','Sin calificar':'#94a3b8'},
+                        title='Distribución de resultados académicos', template=template)
+        fig_pie.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                              font_color=fontcolor, margin=dict(l=10,r=10,t=55,b=20))
+        # Evitar un gráfico ilegible con miles de estudiantes.
+        graficables = con_nota.nsmallest(60, 'calificacion_final')
+        fig_bar = px.bar(graficables, x='nombre_alumno', y='calificacion_final',
+                         title='Calificaciones (hasta 60 registros con menor nota)',
+                         color_discrete_sequence=[COLOR_VERDE_BANDERA], template=template)
+        fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                              font_color=fontcolor, yaxis=dict(range=[0,10]),
+                              margin=dict(l=12,r=12,t=55,b=65), clickmode='event+select')
     rows = []
     for _, r in agg.sort_values('nombre_alumno').iterrows():
         grade = r['calificacion_final']
@@ -2993,7 +3235,9 @@ def update_layout_auth(auth_data):
     prevent_initial_call=True
 )
 def handle_login(n_clicks, enter_usuario, enter_password, username, password, auth_data):
-    if not (n_clicks or enter_usuario or enter_password) or not username or not password:
+    # Los dos n_submit permiten Enter indistintamente en usuario/correo y contraseña.
+    # Se conserva el acceso por botón y la comprobación real de credenciales Moodle.
+    if not (n_clicks or enter_usuario or enter_password) or not str(username or '').strip() or not str(password or '').strip():
         return dash.no_update, 'Escribe usuario y contraseña.', dash.no_update
     username = str(username).strip().lower()
     flask_session.pop('uttec_authorized', None)
