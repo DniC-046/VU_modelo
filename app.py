@@ -378,6 +378,21 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 #main-container .ut-propuesta .up-progress-val{min-width:60px;white-space:nowrap}
 #main-container .ut-propuesta .up-progress-label{overflow-wrap:anywhere}
 #main-container .ut-propuesta .up-real>summary:hover{background:var(--up-soft)}
+/* Las cuatro tarjetas de indicadores se adaptan al modo de apariencia sin perder los acentos. */
+#main-container .ut-propuesta .up-kpi{
+    background:var(--up-card);border-color:var(--up-line);
+    box-shadow:0 5px 16px rgba(12,38,74,.045);
+    transition:background .24s,border-color .24s,transform .2s;
+}
+#main-container .ut-propuesta .up-kpi:hover{transform:translateY(-2px)}
+#main-container .ut-propuesta .up-kpi-label{color:var(--up-panel-title)}
+#main-container .ut-propuesta .up-kpi-detail{color:var(--up-muted)}
+#main-container .ut-propuesta .up-kpi-number{overflow-wrap:anywhere}
+#main-container .ut-propuesta .up-kpis{margin:16px 0 18px}
+#main-container .ut-propuesta .up-connection-warning{
+    color:var(--up-foreground);background:var(--up-soft);border:1px solid var(--up-soft-border);
+    border-radius:9px;padding:11px 15px;margin:0 0 14px;font-size:12px;line-height:1.55
+}
 /* Usuario autenticado siempre visible, también en módulos heredados. */
 .ut-user-strip{display:flex;align-items:center;justify-content:flex-end;gap:11px;flex-wrap:wrap;margin:0 auto 18px;max-width:1510px;color:var(--text-color)}
 .ut-user-label{font-size:12px;font-weight:650;color:var(--text-muted)}
@@ -2456,7 +2471,7 @@ def _up_progress(titulo, subtitulo, datos, nota, total=100, sufijo='%'):
     filas = []
     for nombre, n in datos[:7]:
         ancho = min(100, max(0, 100.0 * float(n) / total)) if total else 0
-        texto = f'{n:g} {sufijo}' if sufijo else f'{n:g}'
+        texto = f'{n:.1f} {sufijo}' if sufijo == '%' else f'{n:g} {sufijo}' if sufijo else f'{n:g}'
         filas.append(html.Div(className='up-progress-row', children=[
             html.Div(str(nombre), className='up-progress-label'),
             html.Div(className='up-progress-track', children=[
@@ -2492,7 +2507,55 @@ def _up_synced_context(cat):
     return prefijo + str(fecha)
 
 
-def _up_moodle_page(tag, titulo, descripcion, graficas, original, explicacion, cat=None):
+def _up_entero(valor):
+    """Separa miles, dejando sin cifra las fuentes no disponibles."""
+    if valor is None:
+        return '—'
+    return f'{int(valor):,}'
+
+
+def _up_porcentaje(numerador, denominador):
+    """Porcentaje solo cuando existe un denominador observado y positivo."""
+    if numerador is None or not denominador:
+        return '—'
+    return f'{100 * numerador / denominador:.1f}%'
+
+
+def _up_indicador(etiqueta, valor, detalle, color=UP_AZUL):
+    """Tarjeta de indicador institucional basada exclusivamente en datos consultados."""
+    return html.Div(className='up-kpi', style={'--up-kpi-color':color}, children=[
+        html.P(etiqueta, className='up-kpi-label'),
+        html.P(str(valor), className='up-kpi-number'),
+        html.P(detalle, className='up-kpi-detail')
+    ])
+
+
+def _up_avisos_fuente(cat, nombre):
+    """Visibiliza cortes incompletos y fallos parciales en vez de parecer desconectado."""
+    if not cat or not cat.get('last_synced'):
+        return html.Div('Moodle: aún no hay una sincronización disponible. Revisa el token y los registros de Render.',
+                        className='up-connection-warning')
+    errores = [str(e) for e in (cat.get('errores') or []) if e]
+    if nombre == 'Calificaciones':
+        claves = ('calificacion', 'calificación', 'nota ', 'informe', 'grades', 'grade')
+    elif nombre == 'Participantes':
+        claves = ('matrícula', 'matricula', 'enrol', 'participante')
+    elif nombre == 'Actividades':
+        claves = ('contenido', 'content', 'curso')
+    elif nombre == 'Cursos':
+        claves = ('curso', 'matrícula', 'matricula', 'contenido')
+    else:
+        claves = ('curso', 'matrícula', 'matricula', 'calificacion', 'calificación', 'contenido')
+    relevantes = [e for e in errores if any(c in e.lower() for c in claves)]
+    if relevantes:
+        return html.Div(
+            f'Moodle reportó {len(relevantes)} advertencia(s) relacionadas con este módulo. '
+            'Algunos indicadores pueden estar incompletos; revisa Configuración → Diagnóstico de conexión Moodle.',
+            className='up-connection-warning')
+    return None
+
+
+def _up_moodle_page(tag, titulo, descripcion, graficas, original, explicacion, cat=None, indicadores=None):
     cat = cat if isinstance(cat, dict) else _leer_catalogo()
     return html.Div(className='ut-propuesta', children=[
         html.Div(className='up-hero', children=[
@@ -2501,6 +2564,9 @@ def _up_moodle_page(tag, titulo, descripcion, graficas, original, explicacion, c
             html.P(descripcion, className='up-hero-desc')
         ]),
         html.Div(_up_synced_context(cat), className='up-context'),
+        _up_avisos_fuente(cat, titulo),
+        html.Div(className='up-kpis', children=[_up_indicador(*indicador)
+                 for indicador in (indicadores or [])]),
         html.Div(className='up-panels', children=graficas),
         html.Details(className='up-real', children=[
             html.Summary('Consultar dashboard anterior'),
@@ -2525,6 +2591,18 @@ def render_inicio(datos=None):
              if not df.empty and 'calificacion_final' in df else pd.Series(dtype=float))
     validas = int(notas.between(0, 10).sum())
     pendientes = max(0, len(df) - validas)
+    tiene_registros = not df.empty and 'nombre_alumno' in df.columns
+    estudiantes = int(_identidad_para_agrupacion(df).nunique()) if tiene_registros else None
+    indicadores = [
+        ('Estudiantes identificados', _up_entero(estudiantes),
+         'Identidades registradas en Moodle; no equivalen a la matrícula oficial', UP_AZUL),
+        ('Cursos accesibles', _up_entero(len(cursos)) if 'courses' in cat else '—',
+         'Cursos recibidos del catálogo de Moodle', UP_VERDE),
+        ('Cobertura de calificaciones', _up_porcentaje(validas, len(df)),
+         f'{validas:,} de {len(df):,} registros con nota válida' if len(df) else 'Sin registros para calcular cobertura', UP_AZUL),
+        ('Registros sin nota', _up_entero(pendientes) if len(df) else '—',
+         'Notas aún no disponibles en los informes sincronizados', UP_AMARILLO)
+    ]
     return _up_moodle_page(
         'Resumen institucional',
         'Bienvenido al panel de inicio, ' + _nombre_usuario_actual(),
@@ -2539,7 +2617,7 @@ def render_inicio(datos=None):
                 [('Nota válida', validas, UP_VERDE), ('Sin nota disponible', pendientes, UP_AMARILLO)],
                 'El total corresponde a registros académicos sincronizados, no a estudiantes únicos.')
         ], _up_render_inicio_moodle(datos),
-        'Resumen y consultas de la interfaz anterior. Los indicadores provienen de la última sincronización Moodle.', cat)
+        'Resumen y consultas de la interfaz anterior. Los indicadores provienen de la última sincronización Moodle.', cat, indicadores=indicadores)
 
 
 def render_cursos(datos=None):
@@ -2561,6 +2639,16 @@ def render_cursos(datos=None):
     with_forums = len(ids_foros & ids_cursos)
     with_enrol = sum(c.get('estado_matriculas') == 'Consultado' for c in cursos)
     cantidad = len(cursos)
+    indicadores = [
+        ('Cursos accesibles', _up_entero(cantidad) if 'courses' in cat else '—',
+         'Cursos detectados con el token autorizado', UP_AZUL),
+        ('Matrícula consultable', _up_porcentaje(with_enrol, cantidad),
+         f'{with_enrol:,} de {cantidad:,} cursos con consulta disponible' if cantidad else 'Sin cursos para comparar', UP_VERDE),
+        ('Con actividades', _up_porcentaje(with_activity, cantidad),
+         f'{with_activity:,} cursos con módulos de actividades' if cantidad else 'Sin cursos para comparar', UP_AZUL),
+        ('Con recursos', _up_porcentaje(with_resources, cantidad),
+         f'{with_resources:,} cursos con materiales detectados' if cantidad else 'Sin cursos para comparar', UP_AMARILLO)
+    ]
     return _up_moodle_page(
         'Gestión académica', 'Cursos',
         'Distribución de aulas y disponibilidad de información académica en Moodle.',
@@ -2579,7 +2667,7 @@ def render_cursos(datos=None):
                  ('Matrícula consultable', 100*with_enrol/cantidad)] if cantidad else [],
                 'Los porcentajes indican contenidos detectados, no el cumplimiento de rúbricas ni criterios de accesibilidad.')
         ], _up_render_cursos_moodle(datos),
-        'La tabla previa mantiene los filtros por división y grupo, sin alterar los registros del catálogo.', cat)
+        'La tabla previa mantiene los filtros por división y grupo, sin alterar los registros del catálogo.', cat, indicadores=indicadores)
 
 
 def render_participantes():
@@ -2599,6 +2687,20 @@ def render_participantes():
     if not df.empty and 'grupo' in df.columns:
         grupos = Counter(str(g) for g in df['grupo'].dropna()
                          if str(g) not in ('SIN GRUPO ASIGNADO','GRUPO NO DISPONIBLE'))
+    identificados = (int(_identidad_para_agrupacion(df).nunique())
+                     if not df.empty and 'nombre_alumno' in df.columns else None)
+    verificados = (int((df['origen'] == 'matricula_verificada').sum())
+                   if not df.empty and 'origen' in df.columns else None)
+    indicadores = [
+        ('Identidades detectadas', _up_entero(identificados),
+         'Usuarios identificados en el conjunto de registros', UP_AZUL),
+        ('Registros por curso', _up_entero(len(df)) if not df.empty else '—',
+         'Inscripciones o registros procedentes de informes', UP_VERDE),
+        ('Grupos identificados', _up_entero(len(grupos)) if not df.empty and 'grupo' in df.columns else '—',
+         'Grupos devueltos por Moodle, excluyendo los no asignados', UP_AZUL),
+        ('Matrículas verificadas', _up_entero(verificados),
+         'Registros con consulta de matrícula autorizada', UP_AMARILLO)
+    ]
     return _up_moodle_page(
         'Trayectoria estudiantil', 'Participantes',
         'Matrículas y grupos identificados mediante los servicios autorizados de Moodle.',
@@ -2613,7 +2715,7 @@ def render_participantes():
                 grupos.most_common(7),
                 'La permanencia histórica y la cobertura de tutoría requieren datos de Control Escolar y tutorías.')
         ], _up_render_participantes_moodle(),
-        'La lista anterior de participantes y su exportación CSV permanecen disponibles.', cat)
+        'La lista anterior de participantes y su exportación CSV permanecen disponibles.', cat, indicadores=indicadores)
 
 
 def render_calificaciones():
@@ -2632,6 +2734,18 @@ def render_calificaciones():
     else:
         aprobadas = reprobadas = pendientes = 0
         promedios = pd.Series(dtype=float)
+    registros = aprobadas + reprobadas + pendientes
+    notas_validas = aprobadas + reprobadas
+    indicadores = [
+        ('Notas válidas', _up_entero(notas_validas) if registros else '—',
+         'Calificaciones entre 0 y 10 sincronizadas desde Moodle', UP_AZUL),
+        ('Aprobación con nota', _up_porcentaje(aprobadas, notas_validas),
+         f'{aprobadas:,} registros con calificación de 6 o más' if notas_validas else 'Pendiente de notas válidas', UP_VERDE),
+        ('Por debajo de 6', _up_entero(reprobadas) if registros else '—',
+         'Registros evaluados con nota inferior a 6', UP_AZUL),
+        ('Cobertura de notas', _up_porcentaje(notas_validas, registros),
+         f'{notas_validas:,} de {registros:,} registros con nota' if registros else 'Sin registros para calcular cobertura', UP_AMARILLO)
+    ]
     return _up_moodle_page(
         'Desempeño académico', 'Calificaciones',
         'Resultados y promedios de las notas que Moodle permite consultar.',
@@ -2648,7 +2762,7 @@ def render_calificaciones():
                 'Los resultados por criterio de rúbrica se mostrarán cuando Moodle entregue esos datos.',
                 total=10, sufijo='/ 10')
         ], _up_render_calificaciones_moodle(),
-        'Consulta de notas, filtros y exportación CSV de la pantalla anterior.', cat)
+        'Consulta de notas, filtros y exportación CSV de la pantalla anterior.', cat, indicadores=indicadores)
 
 
 def render_actividades():
@@ -2657,6 +2771,17 @@ def render_actividades():
     registros = [r for r in (cat.get('activities') or []) if isinstance(r, dict)]
     tipos = Counter(str(r.get('tipo') or 'Otro') for r in registros)
     cursos = Counter(str(r.get('curso') or 'Sin curso') for r in registros)
+    catalogo_presente = 'activities' in cat
+    indicadores = [
+        ('Actividades detectadas', _up_entero(len(registros)) if catalogo_presente else '—',
+         'Módulos académicos encontrados en los cursos accesibles', UP_AZUL),
+        ('Tareas publicadas', _up_entero(tipos.get('assign', 0)) if catalogo_presente else '—',
+         'Actividades tipo assign; no indica entregas', UP_VERDE),
+        ('Cuestionarios', _up_entero(tipos.get('quiz', 0)) if catalogo_presente else '—',
+         'Actividades tipo quiz consultables', UP_AZUL),
+        ('Cursos con actividades', _up_entero(len(cursos)) if catalogo_presente else '—',
+         'Cursos donde Moodle devolvió al menos una actividad', UP_AMARILLO)
+    ]
     return _up_moodle_page(
         'Evaluación y retroalimentación', 'Actividades',
         'Actividades publicadas en los cursos de Moodle y su distribución.',
@@ -2670,7 +2795,7 @@ def render_actividades():
                 cursos.most_common(7),
                 'El estado de entregas, rúbricas y retroalimentación requiere servicios adicionales de Moodle.')
         ], _up_render_actividades_moodle(),
-        'La lista original de actividades de Moodle y los borradores de la sesión siguen funcionando.', cat)
+        'La lista original de actividades de Moodle y los borradores de la sesión siguen funcionando.', cat, indicadores=indicadores)
 
 
 @app.callback(Output('cursos-tabla', 'data'),
