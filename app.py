@@ -279,6 +279,67 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 #toggle-password-btn.ut-password-eye img{margin:0!important;width:23px!important;height:23px!important;transition:transform .18s ease}
 #toggle-password-btn.ut-password-eye:hover img{transform:rotate(-10deg) scale(1.07)}
 
+
+/* =============================================================
+   UTTEC · Tableros institucionales (Inicio a Actividades)
+   Diseño de referencia: propuestas del 17/11/2026.
+   Demostraciones claramente diferenciadas de registros Moodle.
+   ============================================================= */
+.ut-propuesta{--up-bg:#0a111c;--up-card:#152035;--up-card-hover:#1a2942;--up-ink:#f0f5ff;--up-muted:#a7bad1;--up-muted2:#8297b0;--up-line:#2a3951;--up-blue:#82caff;--up-green:#49dbac;--up-gold:#efbd6e;--up-gray:#89a3c6;--up-track:#263b54;background:var(--up-bg);color:var(--up-ink);border-radius:16px;padding:24px 24px 42px;max-width:1510px;margin:0 auto;font-family:'Outfit',system-ui,sans-serif;animation:utPageEnter .35s ease}
+.ut-propuesta *{box-sizing:border-box}
+.ut-propuesta .up-hero{position:relative;min-height:145px;border-radius:16px;padding:24px 27px;overflow:hidden;background:linear-gradient(108deg,#092652 0%,#0b3c5b 45%,#08625c 100%);border:1px solid rgba(95,232,187,.18);margin-bottom:12px}
+.ut-propuesta .up-hero-tag{font-size:10px;letter-spacing:.7px;color:#61dfb2;font-weight:800;margin:0 0 7px}
+.ut-propuesta .up-hero-title{font-size:clamp(30px,3vw,39px);line-height:1.16;font-weight:800;color:#fff;letter-spacing:-.6px;margin:0 0 10px}
+.ut-propuesta .up-hero-desc{font-size:12px;color:#c6d5e7;margin:0;line-height:1.7;max-width:650px}
+.ut-propuesta .up-hero-badge{position:absolute;right:24px;top:20px;border:1px solid #b4a46b;color:#e3d3a7;border-radius:999px;font-size:10px;font-weight:750;padding:6px 14px;background:rgba(21,34,62,.55)}
+.ut-propuesta .up-context{background:#112032;border:1px solid #1c3348;border-radius:8px;padding:12px 14px;font-size:12px;font-weight:600;color:#bdcce0;margin-bottom:15px}
+.ut-propuesta .up-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:15px 0 18px}
+.ut-propuesta .up-kpi{position:relative;min-width:0;min-height:132px;border-radius:13px;background:linear-gradient(180deg,#182740,#131e31);padding:17px 17px 15px;border:1px solid #263650;overflow:hidden}
+.ut-propuesta .up-kpi:before{content:'';height:3px;position:absolute;inset:0 0 auto;background:var(--up-kpi-color)}
+.ut-propuesta .up-kpi-label{font-size:12px;font-weight:700;line-height:1.35;color:#d7e4f3;margin:0 0 12px}
+.ut-propuesta .up-kpi-number{font-size:clamp(24px,2.1vw,31px);font-weight:800;letter-spacing:-.4px;line-height:1.1;margin:0 0 9px;color:var(--up-kpi-color)}
+.ut-propuesta .up-kpi-detail{font-size:11px;color:#98aac1;line-height:1.6;margin:0}
+.ut-propuesta .up-panels{display:grid;grid-template-columns:1fr 1fr;gap:15px;align-items:stretch}
+.ut-propuesta .up-panel{border:1px solid #263751;border-radius:14px;background:var(--up-card);padding:20px;min-width:0;min-height:332px;display:flex;flex-direction:column}
+.ut-propuesta .up-panel h3{color:#eaf2fc;font-size:19px;line-height:1.28;font-weight:800;margin:0 0 6px}
+.ut-propuesta .up-subtitle{font-size:11px;color:#9eafc6;margin:0 0 16px;line-height:1.6}
+.ut-propuesta .up-chart-body{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:175px}
+.ut-propuesta .up-panel-note{color:#b6c8dc;background:#1a304c;border:1px solid #2a4768;font-size:11px;line-height:1.55;border-radius:6px;margin-top:15px;padding:10px 12px;font-weight:600}
+.ut-propuesta .up-legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 15px;color:#bac9db;font-size:11px}
+.ut-propuesta .up-legend-item{display:flex;align-items:center;gap:7px}
+.ut-propuesta .up-legend-swatch{height:9px;width:9px;border-radius:1px;display:inline-block;flex-shrink:0}
+.ut-propuesta .up-stack-wide{display:flex;height:27px;width:100%;background:#273a56;overflow:hidden;margin:10px 0 14px}
+.ut-propuesta .up-stack-seg{display:flex;align-items:center;justify-content:center;font-size:11px;color:#142337;font-weight:800;min-width:0;white-space:nowrap}
+.ut-propuesta .up-stats-under{display:flex;gap:24px;margin:5px 0 2px;flex-wrap:wrap}
+.ut-propuesta .up-under-cell{min-width:90px;flex:1}
+.ut-propuesta .up-under-number{font-size:21px;font-weight:800;margin:0 0 2px}
+.ut-propuesta .up-under-label{font-size:10px;color:#a7bad0;line-height:1.4;margin:0}
+.ut-propuesta .up-bars{display:flex;flex-direction:column;gap:17px;width:100%}
+.ut-propuesta .up-bar-row{display:grid;grid-template-columns:minmax(94px,28%) 1fr auto;align-items:center;gap:11px;min-width:0}
+.ut-propuesta .up-bar-label{font-size:12px;color:#cfdaea;line-height:1.35;font-weight:650;overflow-wrap:anywhere}
+.ut-propuesta .up-bar-track{height:20px;display:flex;background:#273b56;border-radius:2px;overflow:hidden;min-width:0}
+.ut-propuesta .up-bar-end{font-size:11px;min-width:38px;text-align:right;font-weight:750;color:#c3cfe0}
+.ut-propuesta .up-progress-row{display:grid;grid-template-columns:minmax(106px,34%) 1fr 47px;align-items:center;gap:12px;margin-bottom:14px}
+.ut-propuesta .up-progress-label{font-size:12px;font-weight:600;color:#cdd8e6;overflow-wrap:anywhere}
+.ut-propuesta .up-progress-track{height:19px;background:#273d56;border-radius:3px;overflow:hidden}
+.ut-propuesta .up-progress-fill{height:100%;background:#7dc8ff;border-radius:3px}
+.ut-propuesta .up-progress-val{text-align:right;font-size:12px;font-weight:750;color:#dce7f6}
+.ut-propuesta .up-real{margin-top:23px;border:1px solid #2a4461;border-radius:11px;background:#101c2c;color:var(--up-ink);overflow:visible}
+.ut-propuesta .up-real>summary{cursor:pointer;padding:17px 21px;display:list-item;font-size:14px;font-weight:800;color:#74dfb1}
+.ut-propuesta .up-real>summary:focus-visible{outline:2px solid #4ce5af;outline-offset:2px}
+.ut-propuesta .up-real-info{font-size:12px;line-height:1.65;color:#afc8dd;padding:0 21px 10px}
+.ut-propuesta .up-real-content{padding:12px 18px 20px;border-top:1px solid #2a4461;overflow:visible}
+.ut-propuesta .up-real-content .ut-page{padding-bottom:15px}
+.ut-propuesta .up-footer{margin-top:20px;border-top:1px solid #273951;padding-top:14px;font-size:11px;color:#97abc3;line-height:1.75}
+.ut-propuesta .up-footer-line{display:flex;gap:20px;margin-bottom:5px;align-items:flex-start}
+.ut-propuesta .up-footer-key{color:#54d7ad;font-weight:750;min-width:112px;flex-shrink:0}
+.ut-propuesta .up-separation{color:#c5d6e9;font-size:12px;font-weight:700;margin:12px 0 3px}
+.ut-propuesta .up-moodle-short{font-size:11px;color:#a6b9cf;margin-bottom:8px}
+.ut-propuesta .up-panel .dash-graph{width:100%;min-width:0;flex:1}
+.ut-propuesta .up-panel .js-plotly-plot,.ut-propuesta .up-panel .plot-container{width:100%!important}
+@media(max-width:1070px){.ut-propuesta .up-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ut-propuesta .up-panels{grid-template-columns:1fr}.ut-propuesta .up-panel{min-height:310px}}
+@media(max-width:660px){.ut-propuesta{padding:15px;border-radius:0}.ut-propuesta .up-hero{padding:24px 17px 20px}.ut-propuesta .up-hero-badge{position:static;display:inline-block;margin:0 0 10px}.ut-propuesta .up-kpis{gap:9px}.ut-propuesta .up-kpi{padding:13px;min-height:122px}.ut-propuesta .up-kpi-label{font-size:11px}.ut-propuesta .up-panel{padding:15px}.ut-propuesta .up-bar-row{grid-template-columns:90px 1fr auto;gap:6px}.ut-propuesta .up-bar-label{font-size:10px}.ut-propuesta .up-bar-end{min-width:28px;font-size:10px}.ut-propuesta .up-progress-row{grid-template-columns:100px 1fr 36px;gap:7px}.ut-propuesta .up-footer-line{display:block}.ut-propuesta .up-footer-key{display:block}}
+
 '''
 app.index_string = app.index_string.replace('</head>', '<style id="uttec-estilos">' + UTTEC_CSS_INTEGRADO + '</style></head>')
 
@@ -2198,6 +2259,314 @@ def render_configuracion():
                                    style={'color': 'var(--text-muted)'})]),
         'Solo se muestran diagnósticos, nunca credenciales.'))
     return page
+
+
+
+# ============================================================================
+# PROPUESTAS INSTITUCIONALES DEL 17/11/2026 · ALCANCE HASTA ACTIVIDADES
+# Estas cifras son SIMULADAS y se usan solamente para ejemplificar los KPI.
+# Las consultas reales de Moodle y todos los callbacks permanecen intactos.
+# Analítica no se modifica. Recursos, Foros, Mensajes y Configuración tampoco.
+# ============================================================================
+_up_render_inicio_moodle = render_inicio
+_up_render_cursos_moodle = render_cursos
+_up_render_participantes_moodle = render_participantes
+_up_render_calificaciones_moodle = render_calificaciones
+_up_render_actividades_moodle = render_actividades
+
+UP_AZUL = '#84c9fc'
+UP_VERDE = '#4bdcb0'
+UP_AMARILLO = '#eec172'
+UP_GRIS = '#8da9ce'
+
+
+def _up_kpis(specs):
+    return html.Div(className='up-kpis', children=[
+        html.Div(className='up-kpi', style={'--up-kpi-color': color}, children=[
+            html.P(nombre, className='up-kpi-label'),
+            html.P(valor, className='up-kpi-number'),
+            html.P(nota, className='up-kpi-detail')
+        ]) for nombre, valor, nota, color in specs
+    ])
+
+
+def _up_panel(titulo, subtitulo, cuerpo, nota):
+    return html.Div(className='up-panel', children=[
+        html.H3(titulo), html.P(subtitulo, className='up-subtitle'),
+        html.Div(cuerpo, className='up-chart-body'),
+        html.Div(nota, className='up-panel-note')
+    ])
+
+
+def _up_legend(entradas):
+    return html.Div(className='up-legend', children=[
+        html.Span(className='up-legend-item', children=[
+            html.Span(className='up-legend-swatch', style={'backgroundColor': color}), titulo
+        ]) for titulo, color in entradas
+    ])
+
+
+def _up_stacked_segment(n, total, color, etiqueta=None):
+    width = max(0, n / total * 100) if total else 0
+    return html.Div(className='up-stack-seg', style={
+        'width': f'{width:.5f}%', 'backgroundColor': color
+    }, children=(str(etiqueta if etiqueta is not None else n) if width >= 11 else ''))
+
+
+def _up_stacked_summary(title, legend, groups, total, note):
+    stack = html.Div(className='up-stack-wide', children=[
+        _up_stacked_segment(valor, total, color) for _nombre, valor, color in groups
+    ])
+    info = html.Div(className='up-stats-under', children=[
+        html.Div(className='up-under-cell', children=[
+            html.P(f'{n:,}', className='up-under-number', style={'color': c}),
+            html.P(name, className='up-under-label')
+        ]) for name, n, c in groups
+    ])
+    return _up_panel(title, f'Registros del corte · {total:,}',
+                     [_up_legend(legend), stack, info], note)
+
+
+def _up_stacked_rows(title, subtitle, legend, rows, note):
+    content = []
+    for nombre, parts in rows:
+        total = sum(n for n, _color in parts)
+        content.append(html.Div(className='up-bar-row', children=[
+            html.Div(nombre, className='up-bar-label'),
+            html.Div(className='up-bar-track', children=[
+                _up_stacked_segment(n, total, color) for n, color in parts
+            ]),
+            html.Div(f'n = {total}', className='up-bar-end')
+        ]))
+    return _up_panel(title, subtitle,
+                     [_up_legend(legend), html.Div(className='up-bars', children=content)], note)
+
+
+def _up_progress(title, subtitle, rows, note):
+    items=[]
+    for name, percent in rows:
+        items.append(html.Div(className='up-progress-row', children=[
+            html.Div(name, className='up-progress-label'),
+            html.Div(className='up-progress-track', children=[
+                html.Div(className='up-progress-fill', style={'width':f'{max(0,min(100,percent))}%'})
+            ]),
+            html.Div(f'{percent:g} %', className='up-progress-val')
+        ]))
+    return _up_panel(title, subtitle, items, note)
+
+
+def _up_trend(title, subtitle, labels, values, note, bounds=(60,100)):
+    # Plotly ya es dependencia del proyecto original, no se añade ninguna nueva.
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(
+        x=labels, y=values, mode='lines+markers+text',
+        line={'color':UP_VERDE, 'width':2.5},
+        marker={'size':8, 'color':'#152035', 'line':{'color':UP_VERDE,'width':2}},
+        text=[f'{v:g} %' for v in values], textposition='top center',
+        textfont={'size':12,'color':'#dbe8f6'},
+        hovertemplate='%{x}: %{y:g} %<extra></extra>',
+    ))
+    fig.update_layout(
+        autosize=True, height=235, template='plotly_dark', showlegend=False,
+        paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',
+        margin={'t':30,'l':37,'r':12,'b':29},
+        font={'family':'Outfit, sans-serif','size':11,'color':'#a8bed6'},
+        xaxis={'type':'category','categoryorder':'array','categoryarray':labels,
+               'showgrid':False,'zeroline':False,'showline':False},
+        yaxis={'range':list(bounds),'showgrid':True,'gridcolor':'#2b3a52',
+               'zeroline':False,'ticksuffix':'','tickfont':{'size':10}},
+        hovermode='closest'
+    )
+    plot=dcc.Graph(figure=fig, config={'displayModeBar':False,'responsive':True},
+                   style={'width':'100%','height':'240px'})
+    return _up_panel(title, subtitle, plot, note)
+
+
+def _up_demo_page(tag, title, descripcion, corte, specs, charts, alineacion,
+                  fuentes, render_original, explicacion):
+    """Mantiene montados los controles originales bajo Details para no perder callbacks."""
+    return html.Div(className='ut-propuesta', children=[
+        html.Div(className='up-hero', children=[
+            html.Div('EJEMPLO · DATOS SIMULADOS', className='up-hero-badge'),
+            html.P(tag.upper(), className='up-hero-tag'),
+            html.H1(title, className='up-hero-title'),
+            html.P(descripcion, className='up-hero-desc'),
+        ]),
+        html.Div(f'Vista · {corte}', className='up-context'),
+        _up_kpis(specs),
+        html.Div(className='up-panels', children=charts),
+        html.Div(className='up-footer', children=[
+            html.Div(className='up-footer-line', children=[
+                html.Span('Alineación propuesta', className='up-footer-key'),
+                html.Span(alineacion),
+            ]),
+            html.Div(className='up-footer-line', children=[
+                html.Span('Fuentes previstas', className='up-footer-key'),
+                html.Span(fuentes),
+            ]),
+            html.Div('Las cifras superiores son demostrativas, no resultados institucionales verificados.',
+                     className='up-moodle-short')
+        ]),
+        html.Details(className='up-real', children=[
+            html.Summary('Consultar datos reales de Moodle y herramientas existentes'),
+            html.Div(explicacion, className='up-real-info'),
+            html.Div(render_original, className='up-real-content'),
+        ])
+    ])
+
+
+def render_inicio(datos=None):
+    demo=[
+        ('Matrícula oficial', '2,400', 'Estudiantes inscritos', UP_AZUL),
+        ('Cobertura de aulas', '84 %', '252 de 300 grupos', UP_VERDE),
+        ('Aprobación final', '87.2 %', '3,488 de 4,000 notas finales', UP_AZUL),
+        ('Alertas atendidas en plazo', '75 %', '60 de 80 alertas validadas', UP_AMARILLO),
+    ]
+    charts=[
+        _up_trend('Cobertura de aulas virtuales',
+                  'Grupos con aula activa / grupos ofertados, por cuatrimestre',
+                  ['2025-3','2026-1','2026-2','2026-3'],
+                  [68,74,79,84], '+16 puntos porcentuales frente a 2025-3.', (60,95)),
+        _up_stacked_summary('Estado de calificaciones',
+                            [('Nota final válida',UP_VERDE),('Nota pendiente',UP_AMARILLO)],
+                            [('Nota final válida',4000,UP_VERDE),('Nota pendiente',350,UP_AMARILLO)],
+                            4350, 'Cobertura de captura · 92.0 % (4,000 de 4,350).'),
+    ]
+    return _up_demo_page(
+        'Resumen institucional','Inicio',
+        'Panorama de cobertura, desempeño y acompañamiento académico.',
+        'Escenario institucional · 2026-3',demo,charts,
+        'CIEES institucional 4.2.2 y 4.2.3 · CACEI Ingeniería 1.5 y 1.6 · CACET TSU 4.4',
+        'Moodle · Control Escolar · Tutorías',
+        _up_render_inicio_moodle(datos),
+        'Los indicadores oficiales de inscripción, cobertura y alertas requieren validación. Aquí permanecen las consultas originales de Moodle y su última sincronización.'
+    )
+
+
+def render_cursos(datos=None):
+    demo=[
+        ('Grupos ofertados','300','Oferta curricular del período',UP_AZUL),
+        ('Grupos con aula activa','252','84 % de los 300 ofertados',UP_VERDE),
+        ('Aulas revisadas','180','180 de las 252 aulas activas',UP_AZUL),
+        ('Aulas conformes','80 %','144 de 180 revisadas',UP_AMARILLO),
+    ]
+    charts=[
+        _up_stacked_rows('Cobertura de aulas por división',
+              'Grupos con aula activa respecto de la oferta curricular',
+              [('Con aula activa',UP_VERDE),('Sin aula activa',UP_AMARILLO)],
+              [('TIC',[(96,UP_VERDE),(14,UP_AMARILLO)]),
+               ('Ingeniería',[(68,UP_VERDE),(12,UP_AMARILLO)]),
+               ('Área económico-adm.',[(48,UP_VERDE),(12,UP_AMARILLO)]),
+               ('Otras divisiones',[(40,UP_VERDE),(10,UP_AMARILLO)])],
+              'TIC tiene 96 de 110 grupos con aula activa.'),
+        _up_progress('Cumplimiento de la lista de cotejo',
+               'Porcentaje de las 180 aulas revisadas, por criterio',
+               [('Planeación publicada',95),('Calendario actualizado',90),
+                ('Rúbricas visibles',85),('Materiales accesibles',72)],
+               'Los materiales accesibles presentan el menor cumplimiento.'),
+    ]
+    return _up_demo_page(
+        'Gestión académica','Cursos',
+        'Cobertura de aulas virtuales y revisión del diseño de las asignaturas.',
+        'Grupos curriculares · 2026-3',demo,charts,
+        'CIEES MGE 2024 · Plan de estudios y formación no escolarizada y mixta, cuando aplique',
+        'Moodle · oferta oficial · revisión de aulas',
+        _up_render_cursos_moodle(datos),
+        'La lista actualizada de cursos y grupos, junto con los filtros y la tabla original, sigue consultando Moodle. La oferta oficial y el cumplimiento de la lista de cotejo requieren fuentes adicionales.'
+    )
+
+
+def render_participantes():
+    demo=[
+        ('Cohorte de ingreso','500','Estudiantes en la cohorte 2026-1',UP_AZUL),
+        ('Retención a 2026-2','90 %','450 de 500 elegibles',UP_VERDE),
+        ('Retención a 2026-3','86 %','430 de 500 elegibles',UP_AZUL),
+        ('Cobertura de tutoría','80 %','96 de 120 estudiantes objetivo',UP_AMARILLO),
+    ]
+    charts=[
+        _up_trend('Permanencia de la cohorte 2026-1',
+               'Estudiantes inscritos en cada corte / 500 de la cohorte',
+               ['Ingreso','2026-2','2026-3'], [100,90,86],
+               '70 integrantes de la cohorte no figuran inscritos en el último corte.', (78,104)),
+        _up_stacked_rows('Cobertura de tutoría por prioridad',
+              '120 estudiantes en la población objetivo',
+              [('Con tutoría',UP_VERDE),('Sin tutoría',UP_AMARILLO)],
+              [('Prioridad alta',[(36,UP_VERDE),(4,UP_AMARILLO)]),
+               ('Prioridad media',[(42,UP_VERDE),(8,UP_AMARILLO)]),
+               ('Prioridad baja',[(18,UP_VERDE),(12,UP_AMARILLO)])],
+              'Prioridad alta · 36 de 40 estudiantes recibieron tutoría.'),
+    ]
+    return _up_demo_page(
+        'Trayectoria estudiantil','Participantes',
+        'Población registrada, permanencia por cohorte y cobertura de tutoría.',
+        'Cohortes institucionales · educación superior',demo,charts,
+        'CIEES institucional 4.2.2 y 4.2.3 · CACEI Ingeniería 1.5 y 1.6 · CACET TSU 4.4',
+        'Moodle · Control Escolar · Tutorías',
+        _up_render_participantes_moodle(),
+        'Las matrículas originales y la exportación CSV siguen disponibles aquí. La retención por cohorte y las tutorías necesitan cotejo con Control Escolar y registros de atención.'
+    )
+
+
+def render_calificaciones():
+    demo=[
+        ('Notas finales válidas','4,000','De 4,350 inscripciones a asignatura',UP_AZUL),
+        ('Aprobación final','87.2 %','3,488 de 4,000 notas válidas',UP_VERDE),
+        ('Reprobación final','12.8 %','512 de 4,000 notas válidas',UP_AZUL),
+        ('Cobertura de captura','92.0 %','4,000 de 4,350 registros',UP_AMARILLO),
+    ]
+    charts=[
+        _up_stacked_summary('Resultados de evaluación final',
+                    [('Aprobó',UP_VERDE),('Reprobó',UP_AMARILLO),('Pendiente',UP_GRIS)],
+                    [('Aprobó',3488,UP_VERDE),('Reprobó',512,UP_AMARILLO),
+                     ('Pendiente',350,UP_GRIS)],4350,
+                    'La tasa de aprobación usa únicamente las 4,000 notas válidas.'),
+        _up_progress('Logro por criterio de la práctica',
+               'Fundamentos de Redes · 40 estudiantes evaluados',
+               [('Plan de direccionamiento',90),('Configuración de equipos',85),
+                ('Verificación de conectividad',80),('Diagnóstico de fallas',65)],
+               'Diagnóstico de fallas · 26 de 40 alcanzaron el nivel esperado.'),
+    ]
+    return _up_demo_page(
+        'Desempeño académico','Calificaciones',
+        'Resultados por asignatura, cobertura de captura y logro mediante rúbricas.',
+        'Vista institucional y detalle de Fundamentos de Redes · 2026-3',demo,charts,
+        'CIEES MGE 2024 · Resultados de aprendizaje · CACEI Ingeniería, categoría 4 · CACET TSU 4.4',
+        'Moodle · calificaciones oficiales · rúbricas',
+        _up_render_calificaciones_moodle(),
+        'Debajo se conserva la consulta de notas verificables, filtros por división/curso/grupo y exportación CSV. Los logros por rúbrica son solo un ejemplo mientras no exista esa fuente.'
+    )
+
+
+def render_actividades():
+    demo=[
+        ('Entregas esperadas','800','En cuatro semanas del ejemplo',UP_AZUL),
+        ('Entregas a tiempo','80 %','640 de 800 esperadas',UP_VERDE),
+        ('Actividades con rúbrica','90 %','36 de 40 actividades evaluables',UP_AZUL),
+        ('Retroalimentación en plazo','75 %','540 de 720 entregas elegibles',UP_AMARILLO),
+    ]
+    charts=[
+        _up_stacked_rows('Estado de las entregas por semana',
+               '200 entregas esperadas en cada semana',
+               [('A tiempo',UP_VERDE),('Tardías',UP_AMARILLO),('Pendientes',UP_GRIS)],
+               [('Semana 1',[(148,UP_VERDE),(24,UP_AMARILLO),(28,UP_GRIS)]),
+                ('Semana 2',[(156,UP_VERDE),(24,UP_AMARILLO),(20,UP_GRIS)]),
+                ('Semana 3',[(164,UP_VERDE),(20,UP_AMARILLO),(16,UP_GRIS)]),
+                ('Semana 4',[(172,UP_VERDE),(16,UP_AMARILLO),(12,UP_GRIS)])],
+               'Las entregas a tiempo subieron de 74 % a 86 %.'),
+        _up_trend('Retroalimentación en plazo',
+               'Entregas con retroalimentación oportuna / elegibles',
+               ['Sem. 1','Sem. 2','Sem. 3','Sem. 4'],[66.3,71.9,77.5,83.5],
+               'Balance de las cuatro semanas · 540 de 720 entregas.', (60,94)),
+    ]
+    return _up_demo_page(
+        'Evaluación y retroalimentación','Actividades',
+        'Seguimiento de entregas, criterios de evaluación y retroalimentación docente.',
+        'Prácticas y tareas evaluables · cursos piloto',demo,charts,
+        'CIEES MGE 2024 · Trayectoria y resultados de aprendizaje · CACEI Ingeniería, categoría 4',
+        'Moodle · rúbricas · registros de entrega',
+        _up_render_actividades_moodle(),
+        'Los contenidos reales publicados en Moodle y los borradores personales continúan funcionando. Los porcentajes de entrega y retroalimentación no se atribuyen a Moodle hasta conectar los reportes de entregas.'
+    )
 
 
 @app.callback(Output('cursos-tabla', 'data'),
