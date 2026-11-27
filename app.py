@@ -283,7 +283,7 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 /* =============================================================
    UTTEC · Tableros institucionales (Inicio a Actividades)
    Diseño de referencia: propuestas del 17/11/2026.
-   Demostraciones claramente diferenciadas de registros Moodle.
+   Cifras basadas exclusivamente en registros disponibles de Moodle.
    ============================================================= */
 .ut-propuesta{--up-bg:#0a111c;--up-card:#152035;--up-card-hover:#1a2942;--up-ink:#f0f5ff;--up-muted:#a7bad1;--up-muted2:#8297b0;--up-line:#2a3951;--up-blue:#82caff;--up-green:#49dbac;--up-gold:#efbd6e;--up-gray:#89a3c6;--up-track:#263b54;background:var(--up-bg);color:var(--up-ink);border-radius:16px;padding:24px 24px 42px;max-width:1510px;margin:0 auto;font-family:'Outfit',system-ui,sans-serif;animation:utPageEnter .35s ease}
 .ut-propuesta *{box-sizing:border-box}
@@ -340,6 +340,53 @@ body{margin:0;font-family:'Outfit',system-ui,sans-serif}
 @media(max-width:1070px){.ut-propuesta .up-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ut-propuesta .up-panels{grid-template-columns:1fr}.ut-propuesta .up-panel{min-height:310px}}
 @media(max-width:660px){.ut-propuesta{padding:15px;border-radius:0}.ut-propuesta .up-hero{padding:24px 17px 20px}.ut-propuesta .up-hero-badge{position:static;display:inline-block;margin:0 0 10px}.ut-propuesta .up-kpis{gap:9px}.ut-propuesta .up-kpi{padding:13px;min-height:122px}.ut-propuesta .up-kpi-label{font-size:11px}.ut-propuesta .up-panel{padding:15px}.ut-propuesta .up-bar-row{grid-template-columns:90px 1fr auto;gap:6px}.ut-propuesta .up-bar-label{font-size:10px}.ut-propuesta .up-bar-end{min-width:28px;font-size:10px}.ut-propuesta .up-progress-row{grid-template-columns:100px 1fr 36px;gap:7px}.ut-propuesta .up-footer-line{display:block}.ut-propuesta .up-footer-key{display:block}}
 
+/* Tableros institucionales: modo claro/oscuro real sin cambiar las cabeceras azules. */
+#main-container.dark-theme .ut-propuesta{
+ --up-bg:#0a111c;--up-card:#152035;--up-card-hover:#1a2942;--up-ink:#f0f5ff;
+ --up-muted:#a7bad1;--up-line:#2a3951;--up-block:#112032;--up-block-border:#1c3348;
+ --up-soft:#1a304c;--up-soft-border:#2a4768;--up-track:#273d56;
+ --up-accent:#74dfb1;--up-panel-title:#eaf2fc;--up-foreground:#cfdaea;
+}
+#main-container.light-theme .ut-propuesta{
+ --up-bg:#f2f7fd;--up-card:#ffffff;--up-card-hover:#f0f6fc;--up-ink:#132a43;
+ --up-muted:#5b7187;--up-line:#d5e2f0;--up-block:#eaf2fa;--up-block-border:#d8e5f1;
+ --up-soft:#e8f3fa;--up-soft-border:#cddfeb;--up-track:#dbe9f5;
+ --up-accent:#00845a;--up-panel-title:#112b49;--up-foreground:#304b67;
+}
+#main-container .ut-propuesta{background:var(--up-bg);color:var(--up-ink);transition:background .24s,color .24s}
+#main-container .ut-propuesta .up-context{background:var(--up-block);border-color:var(--up-block-border);color:var(--up-foreground)}
+#main-container .ut-propuesta .up-panel{background:var(--up-card);border-color:var(--up-line);box-shadow:0 5px 16px rgba(12,38,74,.05)}
+#main-container .ut-propuesta .up-panel h3{color:var(--up-panel-title)}
+#main-container .ut-propuesta .up-subtitle,
+#main-container .ut-propuesta .up-under-label,
+#main-container .ut-propuesta .up-legend,
+#main-container .ut-propuesta .up-bar-end,
+#main-container .ut-propuesta .up-progress-val{color:var(--up-muted)}
+#main-container .ut-propuesta .up-bar-label,
+#main-container .ut-propuesta .up-progress-label{color:var(--up-foreground)}
+#main-container .ut-propuesta .up-panel-note{background:var(--up-soft);border-color:var(--up-soft-border);color:var(--up-foreground)}
+#main-container .ut-propuesta .up-real{background:var(--up-card);border-color:var(--up-line);color:var(--up-ink)}
+#main-container .ut-propuesta .up-real>summary{color:var(--up-accent)}
+#main-container .ut-propuesta .up-real-info{color:var(--up-muted)}
+#main-container .ut-propuesta .up-real-content{border-top-color:var(--up-line)}
+#main-container .ut-propuesta .up-stack-wide,
+#main-container .ut-propuesta .up-bar-track,
+#main-container .ut-propuesta .up-progress-track{background:var(--up-track)}
+#main-container .ut-propuesta .up-no-data{padding:30px 15px;text-align:center;color:var(--up-muted);background:var(--up-soft);border:1px dashed var(--up-soft-border);border-radius:9px}
+#main-container .ut-propuesta .up-panels{margin-top:18px}
+#main-container .ut-propuesta .up-progress-row{grid-template-columns:minmax(105px,34%) minmax(60px,1fr) 64px}
+#main-container .ut-propuesta .up-progress-val{min-width:60px;white-space:nowrap}
+#main-container .ut-propuesta .up-progress-label{overflow-wrap:anywhere}
+#main-container .ut-propuesta .up-real>summary:hover{background:var(--up-soft)}
+/* Usuario autenticado siempre visible, también en módulos heredados. */
+.ut-user-strip{display:flex;align-items:center;justify-content:flex-end;gap:11px;flex-wrap:wrap;margin:0 auto 18px;max-width:1510px;color:var(--text-color)}
+.ut-user-label{font-size:12px;font-weight:650;color:var(--text-muted)}
+.ut-user-name{font-size:13px;font-weight:750;background:var(--card-bg);border:1px solid var(--border-color);border-radius:999px;padding:10px 16px;color:var(--text-color);max-width:100%;overflow-wrap:anywhere}
+.ut-users-delete{text-align:center;font-size:19px;font-weight:750;cursor:pointer}
+.ut-users-delete-confirm{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:18px;margin:15px 0;border:1px solid #d56868;border-radius:12px;background:var(--dropdown-bg);color:var(--text-color)}
+.ut-btn-danger{background:#a93240!important;color:white!important}
+@media(max-width:660px){.ut-user-strip{justify-content:center}}
+
 '''
 app.index_string = app.index_string.replace('</head>', '<style id="uttec-estilos">' + UTTEC_CSS_INTEGRADO + '</style></head>')
 
@@ -373,10 +420,21 @@ _logger.propagate = False
 
 
 def _user_authorized():
-    # Autorización verificada contra sesión firmada del servidor, nunca contra dcc.Store.
+    # Identidad y rol provienen de la sesión firmada; las revocaciones se
+    # comprueban también en el servidor (no basta ocultar el menú).
     if not has_request_context():
         return True  # Procesos internos de sincronización.
-    return bool(flask_session.get('uttec_authorized') is True)
+    if flask_session.get('uttec_authorized') is not True:
+        return False
+    username = str(flask_session.get('uttec_username') or '').strip().lower()
+    if username and not _admin_predeterminado(username):
+        try:
+            if _acceso_revocado(username):
+                return False
+        except sqlite3.Error:
+            _logger.error('No se pudo verificar la revocación de acceso')
+            return False  # Protección: denegar si la validación falla.
+    return True
 
 
 
@@ -406,6 +464,11 @@ def _conexion_roles():
         updated_by TEXT NOT NULL,
         updated_at TEXT NOT NULL
     )''')
+    con.execute('''CREATE TABLE IF NOT EXISTS accesos_revocados (
+        username TEXT PRIMARY KEY,
+        revoked_by TEXT NOT NULL,
+        revoked_at TEXT NOT NULL
+    )''')
     return con
 
 
@@ -417,7 +480,16 @@ def _roles_registrados():
                         'SELECT username, role, updated_by, updated_at FROM accesos ORDER BY username')]
 
 
+def _acceso_revocado(username):
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            return con.execute('SELECT 1 FROM accesos_revocados WHERE username=?',
+                               (_nombre_cuenta(username),)).fetchone() is not None
+
+
 def _rol_excepcion(username):
+    if _acceso_revocado(username):
+        return 'denied'
     with _UTTEC_ROLE_LOCK:
         with closing(_conexion_roles()) as con, con:
             fila = con.execute('SELECT role FROM accesos WHERE username=?', (_nombre_cuenta(username),)).fetchone()
@@ -434,6 +506,7 @@ def _guardar_rol(username, role, actor):
         raise ValueError('Esa cuenta es administradora principal y no se modifica desde este panel')
     with _UTTEC_ROLE_LOCK:
         with closing(_conexion_roles()) as con, con:
+            con.execute('DELETE FROM accesos_revocados WHERE username=?', (username,))
             con.execute('''INSERT INTO accesos(username,role,updated_by,updated_at)
                 VALUES(?,?,?,?) ON CONFLICT(username) DO UPDATE SET
                 role=excluded.role, updated_by=excluded.updated_by, updated_at=excluded.updated_at''',
@@ -449,6 +522,20 @@ def _eliminar_rol(username):
             con.execute('DELETE FROM accesos WHERE username=?', (username,))
 
 
+def _revocar_usuario(username, actor):
+    """Revoca acceso al dashboard incluso si Moodle le reconoce rol docente."""
+    username = _nombre_cuenta(username)
+    if _admin_predeterminado(username):
+        raise ValueError('No se puede revocar un administrador principal')
+    with _UTTEC_ROLE_LOCK:
+        with closing(_conexion_roles()) as con, con:
+            con.execute('DELETE FROM accesos WHERE username=?', (username,))
+            con.execute('''INSERT INTO accesos_revocados(username,revoked_by,revoked_at)
+                VALUES(?,?,?) ON CONFLICT(username) DO UPDATE SET
+                revoked_by=excluded.revoked_by, revoked_at=excluded.revoked_at''',
+                (username, actor, datetime.now(timezone.utc).isoformat(timespec='seconds')))
+
+
 def _rol_servidor():
     # No se admiten roles provenientes de datos manipulables del navegador.
     return flask_session.get('uttec_role') if has_request_context() and _user_authorized() else None
@@ -456,6 +543,26 @@ def _rol_servidor():
 
 def _es_admin_servidor():
     return _rol_servidor() == 'manager'
+
+
+def _nombre_usuario_actual():
+    """Nombre mostrado desde la sesión firmada del servidor."""
+    if not _user_authorized() or not has_request_context():
+        return 'Usuario institucional'
+    return str(flask_session.get('uttec_fullname') or
+               flask_session.get('uttec_username') or 'Usuario institucional').strip()
+
+
+def _envolver_vista_usuario(contenido):
+    nombre = _nombre_usuario_actual()
+    return html.Div(children=[
+        html.Div(className='ut-user-strip', children=[
+            html.Span('Sesión iniciada como', className='ut-user-label'),
+            html.Span(nombre, className='ut-user-name')
+        ]),
+        contenido
+    ])
+
 
 
 def _moodle_request(function, params=None, token=None, timeout=25):
@@ -1327,7 +1434,7 @@ def render_inicio(datos=None):
                 'color': '#4ade80', 'fontSize': '12px', 'fontWeight': '700',
                 'letterSpacing': '2px', 'margin': '0 0 12px'
             }),
-            html.H1('Bienvenido al panel de inicio', style={
+            html.H1('Bienvenido, ' + _nombre_usuario_actual(), style={
                 'color': '#fff', 'fontSize': '30px', 'margin': '0 0 12px'
             }),
             html.P('Consulta el resumen académico y accede a las herramientas de analítica.',
@@ -2263,10 +2370,10 @@ def render_configuracion():
 
 
 # ============================================================================
-# PROPUESTAS INSTITUCIONALES DEL 17/11/2026 · ALCANCE HASTA ACTIVIDADES
-# Estas cifras son SIMULADAS y se usan solamente para ejemplificar los KPI.
-# Las consultas reales de Moodle y todos los callbacks permanecen intactos.
-# Analítica no se modifica. Recursos, Foros, Mensajes y Configuración tampoco.
+# TABLEROS INSTITUCIONALES · INICIO, CURSOS, PARTICIPANTES, CALIFICACIONES,
+# ACTIVIDADES. Todos los valores se calculan a partir de la sincronización
+# autorizada con Moodle. No se usan muestras, históricos ni valores inventados.
+# Las consultas y formularios originales permanecen disponibles en cada vista.
 # ============================================================================
 _up_render_inicio_moodle = render_inicio
 _up_render_cursos_moodle = render_cursos
@@ -2280,293 +2387,290 @@ UP_AMARILLO = '#eec172'
 UP_GRIS = '#8da9ce'
 
 
-def _up_kpis(specs):
-    return html.Div(className='up-kpis', children=[
-        html.Div(className='up-kpi', style={'--up-kpi-color': color}, children=[
-            html.P(nombre, className='up-kpi-label'),
-            html.P(valor, className='up-kpi-number'),
-            html.P(nota, className='up-kpi-detail')
-        ]) for nombre, valor, nota, color in specs
-    ])
-
-
-def _up_panel(titulo, subtitulo, cuerpo, nota):
+def _up_panel(titulo, subtitulo, cuerpo, nota=None):
     return html.Div(className='up-panel', children=[
         html.H3(titulo), html.P(subtitulo, className='up-subtitle'),
         html.Div(cuerpo, className='up-chart-body'),
-        html.Div(nota, className='up-panel-note')
+        html.Div(nota, className='up-panel-note') if nota else None
     ])
+
+
+def _up_no_data(titulo, subtitulo, razon):
+    return _up_panel(titulo, subtitulo,
+        html.Div('Información no disponible', className='up-no-data'), razon)
 
 
 def _up_legend(entradas):
     return html.Div(className='up-legend', children=[
         html.Span(className='up-legend-item', children=[
-            html.Span(className='up-legend-swatch', style={'backgroundColor': color}), titulo
-        ]) for titulo, color in entradas
+            html.Span(className='up-legend-swatch', style={'backgroundColor': color}), nombre
+        ]) for nombre, color in entradas
     ])
 
 
-def _up_stacked_segment(n, total, color, etiqueta=None):
-    width = max(0, n / total * 100) if total else 0
-    return html.Div(className='up-stack-seg', style={
-        'width': f'{width:.5f}%', 'backgroundColor': color
-    }, children=(str(etiqueta if etiqueta is not None else n) if width >= 11 else ''))
+def _up_stacked_segment(cantidad, total, color):
+    ancho = max(0, 100.0 * cantidad / total) if total else 0
+    return html.Div(className='up-stack-seg',
+                    style={'width': f'{ancho:.4f}%', 'backgroundColor': color})
 
 
-def _up_stacked_summary(title, legend, groups, total, note):
-    stack = html.Div(className='up-stack-wide', children=[
-        _up_stacked_segment(valor, total, color) for _nombre, valor, color in groups
-    ])
-    info = html.Div(className='up-stats-under', children=[
-        html.Div(className='up-under-cell', children=[
-            html.P(f'{n:,}', className='up-under-number', style={'color': c}),
-            html.P(name, className='up-under-label')
-        ]) for name, n, c in groups
-    ])
-    return _up_panel(title, f'Registros del corte · {total:,}',
-                     [_up_legend(legend), stack, info], note)
+def _up_stacked_summary(titulo, subtitulo, grupos, nota):
+    total = sum(cantidad for _nombre, cantidad, _color in grupos)
+    if not total:
+        return _up_no_data(titulo, subtitulo, 'Moodle aún no ha entregado registros para este indicador.')
+    return _up_panel(titulo, subtitulo, [
+        _up_legend([(nombre, color) for nombre, _n, color in grupos]),
+        html.Div(className='up-stack-wide', children=[
+            _up_stacked_segment(n, total, c) for _label, n, c in grupos
+        ]),
+        html.Div(className='up-stats-under', children=[
+            html.Div(className='up-under-cell', children=[
+                html.P(f'{n:,}', className='up-under-number', style={'color': c}),
+                html.P(nombre, className='up-under-label')
+            ]) for nombre, n, c in grupos
+        ])
+    ], nota)
 
 
-def _up_stacked_rows(title, subtitle, legend, rows, note):
-    content = []
-    for nombre, parts in rows:
-        total = sum(n for n, _color in parts)
-        content.append(html.Div(className='up-bar-row', children=[
-            html.Div(nombre, className='up-bar-label'),
+def _up_stacked_rows(titulo, subtitulo, leyenda, datos, nota):
+    if not datos or not any(sum(n for n, _c in partes) for _et, partes in datos):
+        return _up_no_data(titulo, subtitulo, 'Todavía no hay registros suficientes en el catálogo de Moodle.')
+    filas = []
+    for nombre, partes in datos[:7]:
+        total = sum(n for n, _ in partes)
+        filas.append(html.Div(className='up-bar-row', children=[
+            html.Div(str(nombre), className='up-bar-label'),
             html.Div(className='up-bar-track', children=[
-                _up_stacked_segment(n, total, color) for n, color in parts
+                _up_stacked_segment(n, total, color) for n, color in partes
             ]),
-            html.Div(f'n = {total}', className='up-bar-end')
+            html.Div(f'{total:,}', className='up-bar-end')
         ]))
-    return _up_panel(title, subtitle,
-                     [_up_legend(legend), html.Div(className='up-bars', children=content)], note)
+    return _up_panel(titulo, subtitulo, [
+        _up_legend(leyenda), html.Div(className='up-bars', children=filas)
+    ], nota)
 
 
-def _up_progress(title, subtitle, rows, note):
-    items=[]
-    for name, percent in rows:
-        items.append(html.Div(className='up-progress-row', children=[
-            html.Div(name, className='up-progress-label'),
+def _up_progress(titulo, subtitulo, datos, nota, total=100, sufijo='%'):
+    if not datos:
+        return _up_no_data(titulo, subtitulo, 'No hay datos sincronizados para esta comparación.')
+    filas = []
+    for nombre, n in datos[:7]:
+        ancho = min(100, max(0, 100.0 * float(n) / total)) if total else 0
+        texto = f'{n:g} {sufijo}' if sufijo else f'{n:g}'
+        filas.append(html.Div(className='up-progress-row', children=[
+            html.Div(str(nombre), className='up-progress-label'),
             html.Div(className='up-progress-track', children=[
-                html.Div(className='up-progress-fill', style={'width':f'{max(0,min(100,percent))}%'})
+                html.Div(className='up-progress-fill', style={'width': f'{ancho:.3f}%'})
             ]),
-            html.Div(f'{percent:g} %', className='up-progress-val')
+            html.Div(texto, className='up-progress-val')
         ]))
-    return _up_panel(title, subtitle, items, note)
+    return _up_panel(titulo, subtitulo, filas, nota)
 
 
-def _up_trend(title, subtitle, labels, values, note, bounds=(60,100)):
-    # Plotly ya es dependencia del proyecto original, no se añade ninguna nueva.
-    fig=go.Figure()
-    fig.add_trace(go.Scatter(
-        x=labels, y=values, mode='lines+markers+text',
-        line={'color':UP_VERDE, 'width':2.5},
-        marker={'size':8, 'color':'#152035', 'line':{'color':UP_VERDE,'width':2}},
-        text=[f'{v:g} %' for v in values], textposition='top center',
-        textfont={'size':12,'color':'#dbe8f6'},
-        hovertemplate='%{x}: %{y:g} %<extra></extra>',
-    ))
-    fig.update_layout(
-        autosize=True, height=235, template='plotly_dark', showlegend=False,
-        paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',
-        margin={'t':30,'l':37,'r':12,'b':29},
-        font={'family':'Outfit, sans-serif','size':11,'color':'#a8bed6'},
-        xaxis={'type':'category','categoryorder':'array','categoryarray':labels,
-               'showgrid':False,'zeroline':False,'showline':False},
-        yaxis={'range':list(bounds),'showgrid':True,'gridcolor':'#2b3a52',
-               'zeroline':False,'ticksuffix':'','tickfont':{'size':10}},
-        hovermode='closest'
-    )
-    plot=dcc.Graph(figure=fig, config={'displayModeBar':False,'responsive':True},
-                   style={'width':'100%','height':'240px'})
-    return _up_panel(title, subtitle, plot, note)
+def _up_count_bars(titulo, subtitulo, items, nota):
+    items = [(str(k), int(n)) for k, n in items if n is not None and n > 0][:7]
+    if not items:
+        return _up_no_data(titulo, subtitulo, 'No hay datos verificados para construir esta gráfica.')
+    mayor = max(n for _etiqueta, n in items)
+    filas = []
+    for etiqueta, cantidad in items:
+        filas.append(html.Div(className='up-progress-row', children=[
+            html.Div(etiqueta, className='up-progress-label'),
+            html.Div(className='up-progress-track', children=[
+                html.Div(className='up-progress-fill', style={'width': f'{100*cantidad/mayor:.3f}%'})
+            ]),
+            html.Div(f'{cantidad:,}', className='up-progress-val')
+        ]))
+    return _up_panel(titulo, subtitulo, filas, nota)
 
 
-def _up_demo_page(tag, title, descripcion, corte, specs, charts, alineacion,
-                  fuentes, render_original, explicacion):
-    """Mantiene montados los controles originales bajo Details para no perder callbacks."""
+def _up_synced_context(cat):
+    fecha = cat.get('last_synced') if isinstance(cat, dict) else None
+    if not fecha:
+        return 'Moodle · Pendiente de sincronización'
+    prefijo = 'Moodle · Sincronización en curso · ' if cat.get('sync_in_progress') else 'Moodle · Última sincronización · '
+    return prefijo + str(fecha)
+
+
+def _up_moodle_page(tag, titulo, descripcion, graficas, original, explicacion, cat=None):
+    cat = cat if isinstance(cat, dict) else _leer_catalogo()
     return html.Div(className='ut-propuesta', children=[
         html.Div(className='up-hero', children=[
-            html.Div('EJEMPLO · DATOS SIMULADOS', className='up-hero-badge'),
             html.P(tag.upper(), className='up-hero-tag'),
-            html.H1(title, className='up-hero-title'),
-            html.P(descripcion, className='up-hero-desc'),
+            html.H1(titulo, className='up-hero-title'),
+            html.P(descripcion, className='up-hero-desc')
         ]),
-        html.Div(f'Vista · {corte}', className='up-context'),
-        _up_kpis(specs),
-        html.Div(className='up-panels', children=charts),
-        html.Div(className='up-footer', children=[
-            html.Div(className='up-footer-line', children=[
-                html.Span('Alineación propuesta', className='up-footer-key'),
-                html.Span(alineacion),
-            ]),
-            html.Div(className='up-footer-line', children=[
-                html.Span('Fuentes previstas', className='up-footer-key'),
-                html.Span(fuentes),
-            ]),
-            html.Div('Las cifras superiores son demostrativas, no resultados institucionales verificados.',
-                     className='up-moodle-short')
-        ]),
+        html.Div(_up_synced_context(cat), className='up-context'),
+        html.Div(className='up-panels', children=graficas),
         html.Details(className='up-real', children=[
-            html.Summary('Consultar datos reales de Moodle y herramientas existentes'),
+            html.Summary('Consultar dashboard anterior'),
             html.Div(explicacion, className='up-real-info'),
-            html.Div(render_original, className='up-real-content'),
+            html.Div(original, className='up-real-content')
         ])
     ])
 
 
+def _up_catalogo_cursos():
+    cat = _leer_catalogo()
+    cursos = [c for c in (cat.get('courses') or []) if isinstance(c, dict)]
+    return cat, cursos
+
+
 def render_inicio(datos=None):
-    demo=[
-        ('Matrícula oficial', '2,400', 'Estudiantes inscritos', UP_AZUL),
-        ('Cobertura de aulas', '84 %', '252 de 300 grupos', UP_VERDE),
-        ('Aprobación final', '87.2 %', '3,488 de 4,000 notas finales', UP_AZUL),
-        ('Alertas atendidas en plazo', '75 %', '60 de 80 alertas validadas', UP_AMARILLO),
-    ]
-    charts=[
-        _up_trend('Cobertura de aulas virtuales',
-                  'Grupos con aula activa / grupos ofertados, por cuatrimestre',
-                  ['2025-3','2026-1','2026-2','2026-3'],
-                  [68,74,79,84], '+16 puntos porcentuales frente a 2025-3.', (60,95)),
-        _up_stacked_summary('Estado de calificaciones',
-                            [('Nota final válida',UP_VERDE),('Nota pendiente',UP_AMARILLO)],
-                            [('Nota final válida',4000,UP_VERDE),('Nota pendiente',350,UP_AMARILLO)],
-                            4350, 'Cobertura de captura · 92.0 % (4,000 de 4,350).'),
-    ]
-    return _up_demo_page(
-        'Resumen institucional','Inicio',
-        'Panorama de cobertura, desempeño y acompañamiento académico.',
-        'Escenario institucional · 2026-3',demo,charts,
-        'CIEES institucional 4.2.2 y 4.2.3 · CACEI Ingeniería 1.5 y 1.6 · CACET TSU 4.4',
-        'Moodle · Control Escolar · Tutorías',
-        _up_render_inicio_moodle(datos),
-        'Los indicadores oficiales de inscripción, cobertura y alertas requieren validación. Aquí permanecen las consultas originales de Moodle y su última sincronización.'
-    )
+    cat, cursos = _up_catalogo_cursos()
+    df = obtener_datos_procesados()
+    from collections import Counter
+    divisiones = Counter(str(c.get('carrera') or 'Sin división') for c in cursos)
+    notas = (pd.to_numeric(df['calificacion_final'], errors='coerce')
+             if not df.empty and 'calificacion_final' in df else pd.Series(dtype=float))
+    validas = int(notas.between(0, 10).sum())
+    pendientes = max(0, len(df) - validas)
+    return _up_moodle_page(
+        'Resumen institucional',
+        'Bienvenido al panel de inicio, ' + _nombre_usuario_actual(),
+        'Panorama de cursos y registros académicos obtenidos desde Moodle.',
+        [
+            _up_count_bars('Cursos registrados por división',
+                'Distribución del catálogo de cursos accesibles en Moodle',
+                divisiones.most_common(7),
+                'Los cursos mostrados son los accesibles mediante el token; no equivalen a la oferta oficial de Control Escolar.'),
+            _up_stacked_summary('Estado de calificaciones',
+                'Registros por curso con nota válida o pendiente',
+                [('Nota válida', validas, UP_VERDE), ('Sin nota disponible', pendientes, UP_AMARILLO)],
+                'El total corresponde a registros académicos sincronizados, no a estudiantes únicos.')
+        ], _up_render_inicio_moodle(datos),
+        'Resumen y consultas de la interfaz anterior. Los indicadores provienen de la última sincronización Moodle.', cat)
 
 
 def render_cursos(datos=None):
-    demo=[
-        ('Grupos ofertados','300','Oferta curricular del período',UP_AZUL),
-        ('Grupos con aula activa','252','84 % de los 300 ofertados',UP_VERDE),
-        ('Aulas revisadas','180','180 de las 252 aulas activas',UP_AZUL),
-        ('Aulas conformes','80 %','144 de 180 revisadas',UP_AMARILLO),
-    ]
-    charts=[
-        _up_stacked_rows('Cobertura de aulas por división',
-              'Grupos con aula activa respecto de la oferta curricular',
-              [('Con aula activa',UP_VERDE),('Sin aula activa',UP_AMARILLO)],
-              [('TIC',[(96,UP_VERDE),(14,UP_AMARILLO)]),
-               ('Ingeniería',[(68,UP_VERDE),(12,UP_AMARILLO)]),
-               ('Área económico-adm.',[(48,UP_VERDE),(12,UP_AMARILLO)]),
-               ('Otras divisiones',[(40,UP_VERDE),(10,UP_AMARILLO)])],
-              'TIC tiene 96 de 110 grupos con aula activa.'),
-        _up_progress('Cumplimiento de la lista de cotejo',
-               'Porcentaje de las 180 aulas revisadas, por criterio',
-               [('Planeación publicada',95),('Calendario actualizado',90),
-                ('Rúbricas visibles',85),('Materiales accesibles',72)],
-               'Los materiales accesibles presentan el menor cumplimiento.'),
-    ]
-    return _up_demo_page(
-        'Gestión académica','Cursos',
-        'Cobertura de aulas virtuales y revisión del diseño de las asignaturas.',
-        'Grupos curriculares · 2026-3',demo,charts,
-        'CIEES MGE 2024 · Plan de estudios y formación no escolarizada y mixta, cuando aplique',
-        'Moodle · oferta oficial · revisión de aulas',
-        _up_render_cursos_moodle(datos),
-        'La lista actualizada de cursos y grupos, junto con los filtros y la tabla original, sigue consultando Moodle. La oferta oficial y el cumplimiento de la lista de cotejo requieren fuentes adicionales.'
-    )
+    cat, cursos = _up_catalogo_cursos()
+    from collections import defaultdict
+    divisiones = defaultdict(lambda: [0, 0])
+    for c in cursos:
+        key = str(c.get('carrera') or 'Sin división')
+        if c.get('estado_matriculas') == 'Consultado':
+            divisiones[key][0] += 1
+        else:
+            divisiones[key][1] += 1
+    ids_actividades = {str(r.get('course_id')) for r in (cat.get('activities') or []) if isinstance(r, dict)}
+    ids_recursos = {str(r.get('course_id')) for r in (cat.get('resources') or []) if isinstance(r, dict)}
+    ids_foros = {str(r.get('course_id')) for r in (cat.get('forums') or []) if isinstance(r, dict)}
+    ids_cursos = {str(c.get('id')) for c in cursos}
+    with_activity = len(ids_actividades & ids_cursos)
+    with_resources = len(ids_recursos & ids_cursos)
+    with_forums = len(ids_foros & ids_cursos)
+    with_enrol = sum(c.get('estado_matriculas') == 'Consultado' for c in cursos)
+    cantidad = len(cursos)
+    return _up_moodle_page(
+        'Gestión académica', 'Cursos',
+        'Distribución de aulas y disponibilidad de información académica en Moodle.',
+        [
+            _up_stacked_rows('Consulta de matrícula por división',
+                'Cursos con matrícula consultada y cursos sin verificación',
+                [('Matrícula consultada', UP_VERDE), ('Sin verificar', UP_AMARILLO)],
+                [(d, [(nums[0], UP_VERDE), (nums[1], UP_AMARILLO)])
+                 for d, nums in sorted(divisiones.items(), key=lambda pair: -sum(pair[1]))],
+                'Sin verificar no significa que el aula esté inactiva: puede faltar permiso para consultar matrículas.'),
+            _up_progress('Contenidos registrados en los cursos',
+                'Porcentaje de cursos con al menos un módulo de cada tipo',
+                [('Actividades', 100*with_activity/cantidad),
+                 ('Recursos', 100*with_resources/cantidad),
+                 ('Foros', 100*with_forums/cantidad),
+                 ('Matrícula consultable', 100*with_enrol/cantidad)] if cantidad else [],
+                'Los porcentajes indican contenidos detectados, no el cumplimiento de rúbricas ni criterios de accesibilidad.')
+        ], _up_render_cursos_moodle(datos),
+        'La tabla previa mantiene los filtros por división y grupo, sin alterar los registros del catálogo.', cat)
 
 
 def render_participantes():
-    demo=[
-        ('Cohorte de ingreso','500','Estudiantes en la cohorte 2026-1',UP_AZUL),
-        ('Retención a 2026-2','90 %','450 de 500 elegibles',UP_VERDE),
-        ('Retención a 2026-3','86 %','430 de 500 elegibles',UP_AZUL),
-        ('Cobertura de tutoría','80 %','96 de 120 estudiantes objetivo',UP_AMARILLO),
-    ]
-    charts=[
-        _up_trend('Permanencia de la cohorte 2026-1',
-               'Estudiantes inscritos en cada corte / 500 de la cohorte',
-               ['Ingreso','2026-2','2026-3'], [100,90,86],
-               '70 integrantes de la cohorte no figuran inscritos en el último corte.', (78,104)),
-        _up_stacked_rows('Cobertura de tutoría por prioridad',
-              '120 estudiantes en la población objetivo',
-              [('Con tutoría',UP_VERDE),('Sin tutoría',UP_AMARILLO)],
-              [('Prioridad alta',[(36,UP_VERDE),(4,UP_AMARILLO)]),
-               ('Prioridad media',[(42,UP_VERDE),(8,UP_AMARILLO)]),
-               ('Prioridad baja',[(18,UP_VERDE),(12,UP_AMARILLO)])],
-              'Prioridad alta · 36 de 40 estudiantes recibieron tutoría.'),
-    ]
-    return _up_demo_page(
-        'Trayectoria estudiantil','Participantes',
-        'Población registrada, permanencia por cohorte y cobertura de tutoría.',
-        'Cohortes institucionales · educación superior',demo,charts,
-        'CIEES institucional 4.2.2 y 4.2.3 · CACEI Ingeniería 1.5 y 1.6 · CACET TSU 4.4',
-        'Moodle · Control Escolar · Tutorías',
-        _up_render_participantes_moodle(),
-        'Las matrículas originales y la exportación CSV siguen disponibles aquí. La retención por cohorte y las tutorías necesitan cotejo con Control Escolar y registros de atención.'
-    )
+    cat = _leer_catalogo()
+    df = obtener_datos_procesados()
+    from collections import Counter
+    if not df.empty and {'carrera','origen'}.issubset(df.columns):
+        columnas = df[['carrera','origen']].fillna('')
+        conteo = Counter((str(r['carrera']), str(r['origen'])) for _, r in columnas.iterrows())
+        totales = Counter(str(r['carrera']) for _, r in columnas.iterrows())
+        por_division = [(c, [(conteo[(c,'matricula_verificada')], UP_VERDE),
+                              (totales[c]-conteo[(c,'matricula_verificada')], UP_AMARILLO)])
+                        for c, _ in totales.most_common(7)]
+    else:
+        por_division = []
+    grupos = Counter()
+    if not df.empty and 'grupo' in df.columns:
+        grupos = Counter(str(g) for g in df['grupo'].dropna()
+                         if str(g) not in ('SIN GRUPO ASIGNADO','GRUPO NO DISPONIBLE'))
+    return _up_moodle_page(
+        'Trayectoria estudiantil', 'Participantes',
+        'Matrículas y grupos identificados mediante los servicios autorizados de Moodle.',
+        [
+            _up_stacked_rows('Registros por división',
+                'Matrículas verificadas frente a registros procedentes de informes',
+                [('Matrícula verificada', UP_VERDE), ('Solo informe', UP_AMARILLO)],
+                por_division,
+                'Una persona puede estar matriculada en varios cursos; no representa retención por cohorte.'),
+            _up_count_bars('Grupos con más registros',
+                'Registros de matrícula por grupo informado en Moodle',
+                grupos.most_common(7),
+                'La permanencia histórica y la cobertura de tutoría requieren datos de Control Escolar y tutorías.')
+        ], _up_render_participantes_moodle(),
+        'La lista anterior de participantes y su exportación CSV permanecen disponibles.', cat)
 
 
 def render_calificaciones():
-    demo=[
-        ('Notas finales válidas','4,000','De 4,350 inscripciones a asignatura',UP_AZUL),
-        ('Aprobación final','87.2 %','3,488 de 4,000 notas válidas',UP_VERDE),
-        ('Reprobación final','12.8 %','512 de 4,000 notas válidas',UP_AZUL),
-        ('Cobertura de captura','92.0 %','4,000 de 4,350 registros',UP_AMARILLO),
-    ]
-    charts=[
-        _up_stacked_summary('Resultados de evaluación final',
-                    [('Aprobó',UP_VERDE),('Reprobó',UP_AMARILLO),('Pendiente',UP_GRIS)],
-                    [('Aprobó',3488,UP_VERDE),('Reprobó',512,UP_AMARILLO),
-                     ('Pendiente',350,UP_GRIS)],4350,
-                    'La tasa de aprobación usa únicamente las 4,000 notas válidas.'),
-        _up_progress('Logro por criterio de la práctica',
-               'Fundamentos de Redes · 40 estudiantes evaluados',
-               [('Plan de direccionamiento',90),('Configuración de equipos',85),
-                ('Verificación de conectividad',80),('Diagnóstico de fallas',65)],
-               'Diagnóstico de fallas · 26 de 40 alcanzaron el nivel esperado.'),
-    ]
-    return _up_demo_page(
-        'Desempeño académico','Calificaciones',
-        'Resultados por asignatura, cobertura de captura y logro mediante rúbricas.',
-        'Vista institucional y detalle de Fundamentos de Redes · 2026-3',demo,charts,
-        'CIEES MGE 2024 · Resultados de aprendizaje · CACEI Ingeniería, categoría 4 · CACET TSU 4.4',
-        'Moodle · calificaciones oficiales · rúbricas',
-        _up_render_calificaciones_moodle(),
-        'Debajo se conserva la consulta de notas verificables, filtros por división/curso/grupo y exportación CSV. Los logros por rúbrica son solo un ejemplo mientras no exista esa fuente.'
-    )
+    cat = _leer_catalogo()
+    df = obtener_datos_procesados()
+    if not df.empty and 'calificacion_final' in df.columns:
+        notas = pd.to_numeric(df['calificacion_final'], errors='coerce')
+        validas = notas.between(0, 10)
+        aprobadas = int((validas & (notas >= 6)).sum())
+        reprobadas = int((validas & (notas < 6)).sum())
+        pendientes = int((~validas).sum())
+        con_notas = df.loc[validas].copy()
+        con_notas['calificacion_final'] = notas.loc[validas]
+        promedios = (con_notas.groupby('curso')['calificacion_final'].mean().sort_values(ascending=False).head(7)
+                     if 'curso' in con_notas.columns else pd.Series(dtype=float))
+    else:
+        aprobadas = reprobadas = pendientes = 0
+        promedios = pd.Series(dtype=float)
+    return _up_moodle_page(
+        'Desempeño académico', 'Calificaciones',
+        'Resultados y promedios de las notas que Moodle permite consultar.',
+        [
+            _up_stacked_summary('Resultados de calificaciones registradas',
+                'Estado de los registros académicos sincronizados',
+                [('Aprobado (≥6)', aprobadas, UP_VERDE),
+                 ('Por debajo de 6', reprobadas, UP_AMARILLO),
+                 ('Sin calificar', pendientes, UP_GRIS)],
+                'La clasificación utiliza la escala de 0 a 10; las notas ausentes no se consideran reprobadas.'),
+            _up_progress('Promedio por asignatura',
+                'Hasta siete cursos con nota disponible; escala de 0 a 10',
+                [(str(c), round(float(n),2)) for c, n in promedios.items()],
+                'Los resultados por criterio de rúbrica se mostrarán cuando Moodle entregue esos datos.',
+                total=10, sufijo='/ 10')
+        ], _up_render_calificaciones_moodle(),
+        'Consulta de notas, filtros y exportación CSV de la pantalla anterior.', cat)
 
 
 def render_actividades():
-    demo=[
-        ('Entregas esperadas','800','En cuatro semanas del ejemplo',UP_AZUL),
-        ('Entregas a tiempo','80 %','640 de 800 esperadas',UP_VERDE),
-        ('Actividades con rúbrica','90 %','36 de 40 actividades evaluables',UP_AZUL),
-        ('Retroalimentación en plazo','75 %','540 de 720 entregas elegibles',UP_AMARILLO),
-    ]
-    charts=[
-        _up_stacked_rows('Estado de las entregas por semana',
-               '200 entregas esperadas en cada semana',
-               [('A tiempo',UP_VERDE),('Tardías',UP_AMARILLO),('Pendientes',UP_GRIS)],
-               [('Semana 1',[(148,UP_VERDE),(24,UP_AMARILLO),(28,UP_GRIS)]),
-                ('Semana 2',[(156,UP_VERDE),(24,UP_AMARILLO),(20,UP_GRIS)]),
-                ('Semana 3',[(164,UP_VERDE),(20,UP_AMARILLO),(16,UP_GRIS)]),
-                ('Semana 4',[(172,UP_VERDE),(16,UP_AMARILLO),(12,UP_GRIS)])],
-               'Las entregas a tiempo subieron de 74 % a 86 %.'),
-        _up_trend('Retroalimentación en plazo',
-               'Entregas con retroalimentación oportuna / elegibles',
-               ['Sem. 1','Sem. 2','Sem. 3','Sem. 4'],[66.3,71.9,77.5,83.5],
-               'Balance de las cuatro semanas · 540 de 720 entregas.', (60,94)),
-    ]
-    return _up_demo_page(
-        'Evaluación y retroalimentación','Actividades',
-        'Seguimiento de entregas, criterios de evaluación y retroalimentación docente.',
-        'Prácticas y tareas evaluables · cursos piloto',demo,charts,
-        'CIEES MGE 2024 · Trayectoria y resultados de aprendizaje · CACEI Ingeniería, categoría 4',
-        'Moodle · rúbricas · registros de entrega',
-        _up_render_actividades_moodle(),
-        'Los contenidos reales publicados en Moodle y los borradores personales continúan funcionando. Los porcentajes de entrega y retroalimentación no se atribuyen a Moodle hasta conectar los reportes de entregas.'
-    )
+    cat = _leer_catalogo()
+    from collections import Counter
+    registros = [r for r in (cat.get('activities') or []) if isinstance(r, dict)]
+    tipos = Counter(str(r.get('tipo') or 'Otro') for r in registros)
+    cursos = Counter(str(r.get('curso') or 'Sin curso') for r in registros)
+    return _up_moodle_page(
+        'Evaluación y retroalimentación', 'Actividades',
+        'Actividades publicadas en los cursos de Moodle y su distribución.',
+        [
+            _up_count_bars('Actividades por tipo',
+                'Módulos de actividades encontrados en los cursos accesibles',
+                tipos.most_common(7),
+                'Se cuentan actividades publicadas, sin asumir que fueron entregadas o calificadas.'),
+            _up_count_bars('Cursos con más actividades',
+                'Cantidad de actividades identificadas por curso',
+                cursos.most_common(7),
+                'El estado de entregas, rúbricas y retroalimentación requiere servicios adicionales de Moodle.')
+        ], _up_render_actividades_moodle(),
+        'La lista original de actividades de Moodle y los borradores de la sesión siguen funcionando.', cat)
 
 
 @app.callback(Output('cursos-tabla', 'data'),
@@ -3360,16 +3464,19 @@ def render_usuarios():
         _logger.error('Error al leer roles de UTTEC: %s', type(exc).__name__)
         entradas, error = [], 'No se pudo acceder al almacenamiento de roles. Revisa UTTEC_DATA_DIR.'
     filas = [{'username':e['username'], 'role':UTTEC_ROLE_LABELS.get(e['role'],e['role']),
-              'updated_by':e['updated_by'], 'updated_at':e['updated_at']}
+              'updated_by':e['updated_by'], 'updated_at':e['updated_at'],
+              'id':e['username'], 'accion':'🗑️ Eliminar'}
              for e in entradas]
     filas = ([{'username':u, 'role':'Administrador principal', 'updated_by':'Configuración inicial',
-               'updated_at':'Permanente'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] + filas)
+               'updated_at':'Permanente','id':u,'accion':'Protegido'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] + filas)
     tabla = dash_table.DataTable(
         id='usuarios-tabla', data=filas,
         columns=[{'name':'Cuenta Moodle','id':'username'}, {'name':'Rol en el dashboard','id':'role'},
-                 {'name':'Modificado por','id':'updated_by'}, {'name':'Fecha','id':'updated_at'}],
+                 {'name':'Modificado por','id':'updated_by'}, {'name':'Fecha','id':'updated_at'},
+                 {'name':'Eliminar','id':'accion','presentation':'markdown'}],
         page_size=12, sort_action='native', filter_action='native',
         style_table={'overflowX':'auto'}, style_header={'backgroundColor':'#153863','color':'#fff', 'padding':'13px'},
+        style_cell_conditional=[{'if':{'column_id':'accion'},'textAlign':'center','minWidth':'90px','width':'100px'}],
         style_cell={'backgroundColor':'var(--card-bg)','color':'var(--text-color)', 'padding':'13px',
                     'textAlign':'left','border':'1px solid var(--border-color)', 'fontFamily':'Outfit, sans-serif'})
     return html.Div(className='ut-page', children=[
@@ -3394,8 +3501,17 @@ def render_usuarios():
                 html.Span(id='usuarios-feedback',className='ut-feedback',role='status',children=error or '')
             ])
         ]), 'Los cambios son específicos de esta analítica, no de Moodle.'),
-        _mod_card('Usuarios autorizados y excepciones',tabla,
-                  'Las cuentas principales tienen acceso permanente. Las demás se administran aquí.'),
+        _mod_card('Usuarios autorizados y excepciones',html.Div([
+            tabla,
+            dcc.Store(id='usuarios-eliminar-seleccion', data=None),
+            html.Div(id='usuarios-eliminar-dialog',style={'display':'none'},className='ut-users-delete-confirm',children=[
+                html.Strong(id='usuarios-eliminar-pregunta'),
+                html.Button('Sí, revocar acceso',id='usuarios-eliminar-confirmar',n_clicks=0,className='ut-btn ut-btn-danger'),
+                html.Button('Cancelar',id='usuarios-eliminar-cancelar',n_clicks=0,className='ut-btn ut-btn-outline')
+            ]),
+            html.Span(id='usuarios-eliminar-feedback',className='ut-feedback',role='status')
+        ]),
+                  'Pulsa el bote de basura para retirar una excepción, previa confirmación. Esto NO elimina cuentas de Moodle. Las cuentas principales están protegidas.'),
         _mod_notice('Los permisos se guardan en uttec_roles.sqlite3 dentro de UTTEC_DATA_DIR. '
                     'En Render configura almacenamiento persistente para conservarlos tras reinicios o despliegues.')
     ])
@@ -3427,13 +3543,71 @@ def gestionar_roles_usuarios(guardar, quitar, nombre, rol):
             return dash.no_update, dash.no_update
         entries = _roles_registrados()
         filas = ([{'username':u,'role':'Administrador principal','updated_by':'Configuración inicial',
-                   'updated_at':'Permanente'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] +
+                   'updated_at':'Permanente','id':u,'accion':'Protegido'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] +
                  [{'username':e['username'],'role':UTTEC_ROLE_LABELS.get(e['role'], e['role']),
-                   'updated_by':e['updated_by'],'updated_at':e['updated_at']} for e in entries])
+                   'updated_by':e['updated_by'],'updated_at':e['updated_at'],
+                   'id':e['username'],'accion':'🗑️ Eliminar'} for e in entries])
         return filas, mensaje
     except (ValueError, sqlite3.Error) as exc:
         _logger.warning('No se cambió permiso de usuario: %s', type(exc).__name__)
         return dash.no_update, str(exc) if isinstance(exc, ValueError) else 'Error del almacenamiento de roles.'
+
+
+@app.callback(
+    Output('usuarios-eliminar-seleccion', 'data'),
+    Output('usuarios-eliminar-dialog', 'style'),
+    Output('usuarios-eliminar-pregunta', 'children'),
+    Output('usuarios-eliminar-feedback', 'children'),
+    Output('usuarios-tabla', 'data', allow_duplicate=True),
+    Output('usuarios-tabla', 'active_cell'),
+    Input('usuarios-tabla', 'active_cell'),
+    Input('usuarios-eliminar-confirmar', 'n_clicks'),
+    Input('usuarios-eliminar-cancelar', 'n_clicks'),
+    State('usuarios-eliminar-seleccion', 'data'),
+    prevent_initial_call=True
+)
+def ut_eliminar_usuario_confirmado(celda, confirmar, cancelar, seleccion):
+    """Retira únicamente accesos del dashboard; nunca borra usuarios Moodle."""
+    ocultar = {'display': 'none'}
+    abrir = {'display': 'flex'}
+    if not _es_admin_servidor():
+        return None, ocultar, '', 'No autorizado.', dash.no_update, None
+    origen = dash.ctx.triggered_id
+    if origen == 'usuarios-tabla':
+        if not celda or celda.get('column_id') != 'accion':
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        username = _nombre_cuenta(celda.get('row_id'))
+        if not username:
+            return None, ocultar, '', 'No se identificó el usuario seleccionado.', dash.no_update, None
+        if _admin_predeterminado(username):
+            return None, ocultar, '', 'Los administradores principales están protegidos.', dash.no_update, None
+        if _rol_excepcion(username) is None:
+            return None, ocultar, '', 'Este usuario no tiene una excepción que eliminar.', dash.no_update, None
+        return username, abrir, ('¿Revocar el acceso al dashboard de ' + username + '? La cuenta de Moodle no se eliminará.'), '', dash.no_update, dash.no_update
+    if origen == 'usuarios-eliminar-cancelar':
+        return None, ocultar, '', 'Acción cancelada.', dash.no_update, None
+    if origen == 'usuarios-eliminar-confirmar':
+        username = _nombre_cuenta(seleccion)
+        if not username or _admin_predeterminado(username):
+            return None, ocultar, '', 'No se puede retirar ese acceso.', dash.no_update, None
+        try:
+            if _rol_excepcion(username) is None:
+                return None, ocultar, '', 'El acceso ya no figura en la lista.', dash.no_update, None
+            _revocar_usuario(username, _nombre_cuenta(flask_session.get('uttec_username')))
+            entries = _roles_registrados()
+            filas = ([{'username':u,'role':'Administrador principal',
+                       'updated_by':'Configuración inicial','updated_at':'Permanente',
+                       'id':u,'accion':'Protegido'} for u in sorted(UTTEC_ADMIN_BOOTSTRAP)] +
+                     [{'username':e['username'],
+                       'role':UTTEC_ROLE_LABELS.get(e['role'],e['role']),
+                       'updated_by':e['updated_by'],'updated_at':e['updated_at'],
+                       'id':e['username'],'accion':'🗑️ Eliminar'} for e in entries])
+            return None, ocultar, '', ('Se revocó el acceso al dashboard de ' + username +
+                '. No se eliminó la cuenta de Moodle.'), filas, None
+        except (ValueError, sqlite3.Error):
+            _logger.exception('Error al eliminar excepción de usuario')
+            return None, ocultar, '', 'No se pudo retirar la excepción.', dash.no_update, None
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 
 def render_access_denied_screen(username):
@@ -3480,27 +3654,27 @@ def controlar_rutas(pathname, search, theme_class, auth_data):
         return render_access_denied_screen(auth_data.get('username', 'Desconocido'))
 
     if pathname == '/inicio':
-        return render_inicio(_datos_de_inicio())
+        return _envolver_vista_usuario(render_inicio(_datos_de_inicio()))
     if pathname in ('/cursos', '/curso'):
-        return render_cursos(_datos_de_cursos())
+        return _envolver_vista_usuario(render_cursos(_datos_de_cursos()))
     if pathname == '/participantes':
-        return render_participantes()
+        return _envolver_vista_usuario(render_participantes())
     if pathname == '/calificaciones':
-        return render_calificaciones()
+        return _envolver_vista_usuario(render_calificaciones())
     if pathname == '/actividades':
-        return render_actividades()
+        return _envolver_vista_usuario(render_actividades())
     if pathname == '/recursos':
-        return render_recursos()
+        return _envolver_vista_usuario(render_recursos())
     if pathname == '/foros':
-        return render_foros()
+        return _envolver_vista_usuario(render_foros())
     if pathname == '/mensajes':
-        return render_mensajes()
+        return _envolver_vista_usuario(render_mensajes())
     if pathname == '/configuracion':
-        return render_configuracion()
+        return _envolver_vista_usuario(render_configuracion())
     if pathname == '/usuarios':
-        return render_usuarios() if _es_admin_servidor() else render_access_denied_screen('Sin permisos')
+        return _envolver_vista_usuario(render_usuarios()) if _es_admin_servidor() else render_access_denied_screen('Sin permisos')
     if not pathname or pathname in ['/', '/login']:
-        return render_panel_principal()
+        return _envolver_vista_usuario(render_panel_principal())
     elif pathname.startswith('/alumno/'):
         from urllib.parse import unquote, parse_qs
         nombre_estudiante = unquote(pathname.split('/')[-1])
@@ -3514,7 +3688,7 @@ def controlar_rutas(pathname, search, theme_class, auth_data):
             if 'division' in qs:
                 division_seleccionada = unquote(qs['division'][0])
                 
-        return render_panel_individual(nombre_estudiante, theme_class, curso_seleccionado, division_seleccionada)
+        return _envolver_vista_usuario(render_panel_individual(nombre_estudiante, theme_class, curso_seleccionado, division_seleccionada))
     return html.Div("404 - Ruta no válida")
 
 
@@ -3872,6 +4046,7 @@ def handle_login(n_clicks, enter_usuario, enter_password, username, password, au
     flask_session.pop('uttec_user_id', None)
     flask_session.pop('uttec_role', None)
     flask_session.pop('uttec_username', None)
+    flask_session.pop('uttec_fullname', None)
     # Mantener el acceso local de prueba de la versión que entregó el usuario.
     # Solo el equipo local puede usarlo; nunca se habilita en Render ni desde la LAN.
     localhost_real = (has_request_context()
@@ -3885,6 +4060,7 @@ def handle_login(n_clicks, enter_usuario, enter_password, username, password, au
         flask_session['uttec_role'] = 'editingteacher'
         flask_session['uttec_user_id'] = 'local-demo'
         flask_session['uttec_username'] = username
+        flask_session['uttec_fullname'] = username.capitalize()
         flask_session.permanent = False
         return {'logged_in': True, 'role': 'editingteacher', 'username': username.capitalize()}, '', '/inicio'
     if not os.environ.get('MOODLE_TOKEN'):
@@ -3956,6 +4132,7 @@ def handle_login(n_clicks, enter_usuario, enter_password, username, password, au
         flask_session['uttec_user_id'] = str(user_id)
         flask_session['uttec_role'] = role_assigned
         flask_session['uttec_username'] = verified_username
+        flask_session['uttec_fullname'] = str(profile.get('fullname') or verified_username)
         flask_session.permanent = False
         return {'logged_in': True, 'role': role_assigned,
                 'username': str(profile.get('fullname') or username)}, '', '/inicio'
